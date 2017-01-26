@@ -4,6 +4,15 @@ short bokeh utility methods
 """
 
 
+def open_figure(N=10, cmap='plasma'):
+    """
+    returns a figure and list of glyph objects not pointing to any data
+    the idea is to return up to N glyph objects that can later be populated
+    with data, but already have the colormap set
+    """
+    pass
+
+
 def column(*args, **kwargs):
     """
     replace bokeh.layouts.column with a special case of bokeh.layouts.gridplot
@@ -12,10 +21,12 @@ def column(*args, **kwargs):
     e.g. 'gridplot([[plot_1, plot_2], [plot_3, plot_4]])'
 
     a nice side effect of gridplot is just 1 toolbar is used, whereas in a
-    column layout every figure gets its own toolbar (major clutter)
+    column layout every figure gets its own toolbar
 
     this column method uses the special case of gridplot for just 1 column
     of figures, thus replacing the standard column layout
+
+    ** another way to do this is just use ncols=1 with bokeh.layouts.column **
     """
 
     from bokeh.layouts import _handle_children
