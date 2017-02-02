@@ -35,6 +35,7 @@ def slider_with_buttons(width=300, dim=40, **kwargs):
 
     from bokeh.models.widgets import Slider, Button
     from bokeh.layouts import widgetbox, row
+    from functools import partial
 
     # initialize widget objects
     start = kwargs.pop('start', None)
@@ -45,15 +46,16 @@ def slider_with_buttons(width=300, dim=40, **kwargs):
     minus = Button(label='-')
     plus = Button(label='+')
 
-    # create callbacks that update the slider on a button press
-    def plus_callback():
-        slider.value += slider.step
-    def minus_callback():
-        slider.value -= slider.step
+    # create a callback to update the slider on a button press
+    def callback(action):
+        if action == 'inc':
+            slider.value += slider.step
+        elif action == 'dec':
+            slider.value -= slider.step
 
     # set the event handlers
-    minus.on_click(minus_callback)
-    plus.on_click(plus_callback)
+    minus.on_click(partial(callback, action='dec'))
+    plus.on_click(partial(callback, action='inc'))
 
     # return a row layout made up of the slider and button widgets
     return row(
