@@ -4,6 +4,33 @@ short bokeh utility methods
 """
 
 
+def get_glyphs(fig, type='all'):
+    """
+    return a dict of bokeh GlyphRenderer objects
+    """
+
+    pass
+
+def linkfigs(*args, axis='x'):
+    """
+    link axes for a list of bokeh figures
+    'axis' is either 'x', 'y', or 'xy'
+    """
+
+    from bokeh.layouts import _handle_children
+
+    # get a list of figure objects from *args, scan over them
+    figs = _handle_children(*args)
+    for fig in figs[1:]:
+
+        # link x axes for all figures if requested
+        if 'x' in axis:
+            fig.x_range = figs[0].x_range
+
+        # link y axes for all figures if requested
+        if 'y' in axis:
+            fig.y_range = figs[0].y_range
+
 def slider_with_buttons(width=300, dim=40, **kwargs):
     """
     return a bokeh layout object representing a slider widget with button widgets
@@ -92,23 +119,3 @@ def column(*args, **kwargs):
     # get a list of figure objects from *args, return a gridplot as a column plot
     figs = _handle_children(*args)
     return gridplot([[x] for x in figs], **kwargs)
-
-def linkfigs(*args, axis='x'):
-    """
-    link axes for a list of bokeh figures
-    'axis' is either 'x', 'y', or 'xy'
-    """
-
-    from bokeh.layouts import _handle_children
-
-    # get a list of figure objects from *args, scan over them
-    figs = _handle_children(*args)
-    for fig in figs[1:]:
-
-        # link x axes for all figures if requested
-        if 'x' in axis:
-            fig.x_range = figs[0].x_range
-
-        # link y axes for all figures if requested
-        if 'y' in axis:
-            fig.y_range = figs[0].y_range
