@@ -3,12 +3,10 @@
 short bokeh utility methods
 """
 
-from bokeh.models.widgets import Slider
+from bokeh.models.widgets.inputs import Slider
 class SliderWithButtons(Slider):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # from ipdb import set_trace
-        # set_trace()
+    pass
+
 
 def slider_with_buttons(width=300, dim=40, **kwargs):
     """
@@ -22,15 +20,15 @@ def slider_with_buttons(width=300, dim=40, **kwargs):
         object is a child of a widgetbox making up that layout, i.e. it is
         available as: returned_object.children[1].children[0].on_change
 
-        callbacks linked the slider are not working as bokeh thinks the 'value'
+        callbacks linked to the slider are not working as bokeh thinks the 'value'
         attribute is that of the returned Row layout, and this does not have a
         'value' attribute
-
-        the proper way to create this widget is to create a new Slider class
-        that properly links the bokeh Slider and Button classes, but this is
-        difficult as it is not really clear how the bokeh Slider class is
-        created (it inherits a bokeh class that inherits a bokeh class...)
     **
+
+    ** 1 Feb 2017
+        I tried to recreate this with a new class that inherits the usual
+        Slider class.
+
     """
 
     from bokeh.models.widgets import Slider, Button
