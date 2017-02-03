@@ -3,10 +3,6 @@
 short bokeh utility methods
 """
 
-from bokeh.models.widgets.inputs import Slider
-class SliderWithButtons(Slider):
-    pass
-
 
 def slider_with_buttons(width=300, dim=40, **kwargs):
     """
@@ -23,12 +19,10 @@ def slider_with_buttons(width=300, dim=40, **kwargs):
         callbacks linked to the slider are not working as bokeh thinks the 'value'
         attribute is that of the returned Row layout, and this does not have a
         'value' attribute
-    **
 
     ** 1 Feb 2017
-        I tried to recreate this with a new class that inherits the usual
-        Slider class.
-
+        I tried to recreate this with a new class that inherits the usual Slider
+        class, no success.  JavaScript is required for custom bokeh widgets.
     """
 
     from bokeh.models.widgets import Slider, Button
