@@ -4,12 +4,24 @@ short bokeh utility methods
 """
 
 
-def get_glyphs(fig, type='all'):
+def get_glyphs(fig):
     """
-    return a dict of bokeh GlyphRenderer objects
+    return a dict of bokeh GlyphRenderer objects rendered by fig
     """
 
-    pass
+    from bokeh.models import GlyphRenderer
+
+    return [x for x in fig.renderers if isinstance(x, GlyphRenderer)]
+    # from ipdb import set_trace
+    # set_trace()
+
+def empty_data():
+    """
+    return an empty ColumnDataSource object that can be used to initialize a bokeh figure
+    later, e.g. in a callback or update method, the ColumnDataSource can be updated
+    """
+    from bokeh.models import ColumnDataSource
+    return ColumnDataSource(data={'x': [], 'y': []})
 
 def linkfigs(*args, axis='x'):
     """
