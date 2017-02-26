@@ -39,6 +39,59 @@ def linkfigs(*args, axis='x'):
         if 'y' in axis:
             fig.y_range = figs[0].y_range
 
+def autoload_static(model, script_path):
+    """
+    simplifies usage of bokeh.embed.autoload_static
+    see source code
+    """
+
+    from bokeh.embed import autoload_static
+    from bokeh.resources import CDN
+
+    script, tag = autoload_static(model=model, resources=CDN, script_path=script_path)
+    with open(script_path, 'w') as fid:
+        fid.write(script)
+
+    return tag
+
+def open_figure(N=10, cmap='plasma'):
+    """
+    returns a figure and list of glyph objects not pointing to any data
+    the idea is to return up to N glyph objects that can later be populated
+    with data, but already have the colormap set
+    """
+    return
+
+    from bokeh.plotting import figure
+
+    # initialize a bokeh figure object
+    fig = figure()
+    glyphs = None
+    return fig, glyphs
+
+def column(*args, **kwargs):
+    """
+    replace bokeh.layouts.column with a special case of bokeh.layouts.gridplot
+
+    gridplot is meant to be called with a list of lists that define a grid:
+    e.g. 'gridplot([[plot_1, plot_2], [plot_3, plot_4]])'
+
+    a nice side effect of gridplot is just 1 toolbar is used, whereas in a
+    column layout every figure gets its own toolbar
+
+    this column method uses the special case of gridplot for just 1 column
+    of figures, thus replacing the standard column layout
+
+    ** another way to do this is just use ncols=1 with bokeh.layouts.column **
+    """
+
+    from bokeh.layouts import _handle_children
+    from bokeh.layouts import gridplot
+
+    # get a list of figure objects from *args, return a gridplot as a column plot
+    figs = _handle_children(*args)
+    return gridplot([[x] for x in figs], **kwargs)
+
 def slider_with_buttons(width=300, dim=40, **kwargs):
     """
     return a bokeh layout object representing a slider widget with button widgets
@@ -89,41 +142,3 @@ def slider_with_buttons(width=300, dim=40, **kwargs):
         widgetbox(minus, width=dim, height=dim, sizing_mode='fixed'),
         widgetbox(slider, width=width, height=dim, sizing_mode='fixed'),
         widgetbox(plus, width=dim, height=dim, sizing_mode='fixed'))
-
-def open_figure(N=10, cmap='plasma'):
-    """
-    returns a figure and list of glyph objects not pointing to any data
-    the idea is to return up to N glyph objects that can later be populated
-    with data, but already have the colormap set
-    """
-    return
-
-    from bokeh.plotting import figure
-
-    # initialize a bokeh figure object
-    fig = figure()
-    glyphs = None
-    return fig, glyphs
-
-def column(*args, **kwargs):
-    """
-    replace bokeh.layouts.column with a special case of bokeh.layouts.gridplot
-
-    gridplot is meant to be called with a list of lists that define a grid:
-    e.g. 'gridplot([[plot_1, plot_2], [plot_3, plot_4]])'
-
-    a nice side effect of gridplot is just 1 toolbar is used, whereas in a
-    column layout every figure gets its own toolbar
-
-    this column method uses the special case of gridplot for just 1 column
-    of figures, thus replacing the standard column layout
-
-    ** another way to do this is just use ncols=1 with bokeh.layouts.column **
-    """
-
-    from bokeh.layouts import _handle_children
-    from bokeh.layouts import gridplot
-
-    # get a list of figure objects from *args, return a gridplot as a column plot
-    figs = _handle_children(*args)
-    return gridplot([[x] for x in figs], **kwargs)
