@@ -53,3 +53,11 @@ def autoload_static(model, script_path):
         fid.write(script)
 
     return tag
+
+def format_fig(fig, xlabel='', ylabel='', title=''):
+    """
+    apply xlabel, ylabel, and title to a bokeh figure object
+    """
+    fig.xaxis.axis_label = xlabel
+    fig.yaxis.axis_label = ylabel
+    fig.title.text = title
