@@ -37,6 +37,28 @@ def streaming_timestamp_to_datetime(timestamp):
 
     return datetime.strptime(timestamp, r'%Y_%m_%d_%H_%M_%S')
 
+def linspace(start, stop, num):
+    """
+    exactly the same as numpy.linspace if start and stop are both not datetime objects
+    if start and stop are datetime objects:
+        * return an array of datetime objects with 'num' elements bounded by start and stop
+    """
+    import numpy as np
+    from datetime import datetime, timedelta
+
+    # use np.linspace in case start and stop are both not datetime objects
+    if (not isinstance(start, datetime)) or (not isinstance(start, datetime)):
+        return np.linspace(start, stop, num)
+
+    # convert start and stop to seconds since a reference time
+    tref = datetime.strptime('1 Jan 1900', '%d %b %Y')
+    start = (start - tref).total_seconds()
+    stop = (stop - tref).total_seconds()
+
+    # create the linspace array and convert back to datetime objects
+    time = np.linspace(start, stop, num)
+    return np.array([tref + timedelta(seconds=x) for x in time])
+
 def loadmat(fname):
     """
     this function should be called instead of directly calling scipy.io.loadmat
