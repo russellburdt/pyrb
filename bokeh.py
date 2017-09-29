@@ -3,6 +3,63 @@
 short bokeh utility methods
 """
 
+def axis_labels(axis, labels):
+    """
+    set labels on axis with FuncTickFormatter and custom JS
+
+    for example,
+
+    from bokeh.plotting import figure
+    from bokeh.io import show, output_file
+    from pyrb.bokeh import axis_labels
+
+    fig = figure()
+    fig.vbar(x=[0, 1, 2, 3], top=[5, 4, 5, 4], width=0.9)
+    axis_labels(fig.xaxis, ['label 1', 'label 2', 'label 3', 'label 4'])
+
+    output_file('delete_me.html')
+    show(fig)
+    """
+    from bokeh.models import FuncTickFormatter
+    from ipdb import set_trace
+
+    label_dict = {a: b for (a, b) in zip(range(len(labels)), labels)}
+
+    axis.formatter = FuncTickFormatter(code=
+        """
+        var labels = {};
+        return labels[tick];
+        """.format(label_dict))
+
+def largefonts(figs, size=12):
+    """
+    make all fonts 'size' for each bokeh Figure object in figs list
+    """
+    from bokeh.plotting import Figure
+
+    # ensure figs is a list of bokeh Figure objects
+    if not isinstance(figs, list):
+        figs = [figs]
+    figs = [x for x in figs if isinstance(x, Figure)]
+
+    # create 3 sizes based on the 'size' input
+    s1 = '{}pt'.format(size)
+    s2 = '{}pt'.format(size)
+    s3 = '{}pt'.format(size + 2)
+
+    # update fontsize for each Figure in figs list
+    for fig in figs:
+
+        # title
+        fig.title.text_font_size = s3
+
+        # xaxis
+        fig.xaxis.axis_label_text_font_size = s2
+        fig.xaxis.major_label_text_font_size = s1
+
+        # yaxis
+        fig.yaxis.axis_label_text_font_size = s2
+        fig.yaxis.major_label_text_font_size = s1
 
 def get_glyphs(fig):
     """
