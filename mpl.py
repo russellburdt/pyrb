@@ -147,9 +147,13 @@ def addspecline(spec, ax=None, percent_margin=5, color='r'):
     if spec is None:
         return
 
-    # get ax as current axes if not provided as input
+    # get ax as current axes if not provided as input, handle case of iterable ax
     if ax is None:
         ax = plt.gca()
+    if isinstance(ax, list) or isinstance(ax, np.ndarray):
+        for x in ax:
+            addspecline(spec, ax=x, percent_margin=percent_margin, color=color)
+        return
 
     # ensure spec is a list if provided as a float or an int
     # track if only a single spec was provided
