@@ -4,6 +4,13 @@ short data processing utility methods
 """
 
 
+def create_filename(fn):
+    """
+    create a sane / safe filename from fn
+    """
+    keepcharacters = (' ','.','_')
+    return "".join(c for c in fn if c.isalnum() or c in keepcharacters).rstrip()
+
 def return_aliased_freq(f, fs):
     """
     return the aliased frequency of f sampled at fs
