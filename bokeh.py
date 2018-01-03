@@ -21,10 +21,12 @@ def axis_labels(axis, labels):
     show(fig)
     """
     from bokeh.models import FuncTickFormatter
-    from ipdb import set_trace
 
+    # assert that one tick already exists for each label
+    assert len(axis[0].ticker.ticks) == len(labels)
+
+    # create the FuncTickFormatter object
     label_dict = {a: b for (a, b) in zip(range(len(labels)), labels)}
-
     axis.formatter = FuncTickFormatter(code=
         """
         var labels = {};
@@ -111,10 +113,12 @@ def autoload_static(model, script_path):
 
     return tag
 
-def format_fig(fig, xlabel='', ylabel='', title=''):
+def format_fig(fig, xlabel='', ylabel='', title='', size=12):
     """
     apply xlabel, ylabel, and title to a bokeh figure object
+    apply pyrb.bokeh.largefonts with size
     """
     fig.xaxis.axis_label = xlabel
     fig.yaxis.axis_label = ylabel
     fig.title.text = title
+    largefonts(fig, size)
