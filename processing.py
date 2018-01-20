@@ -252,62 +252,7 @@ def TIR(data):
 
     return np.max(data) - np.min(data)
 
-def _get_tzones_abbrevs():
-    """
-    return a tuple (tzones, abbrevs) where both items are dicts:
-    these dicts map common but ambiguous timezone abbreviations (e.g. CET, CST, EST, PST, ...)
-    to non-ambiguous timezone names (e.g. America/Los_Angeles, Asia/Tokyo, Europe/Amsterdam, ...),
-    where the non-ambiguous timezone names are all compatible arguments to the pytz.timezone function
-
-    -- keys to the 'tzones' dict are the common but ambiguous timezone abbreviations
-    -- keys to the 'abbrevs' dict are the non-ambiguous timezone names compatible with pytz.timezone
-    solution from (https://stackoverflow.com/questions/36067621/python-all-possible-timezone-abbreviations-for-given-timezone-name-and-vise-ve)
-    """
-
-    import collections
-    import datetime as DT
-    import pytz
-
-    tzones = collections.defaultdict(set)
-    abbrevs = collections.defaultdict(set)
-
-    for name in pytz.all_timezones:
-        tzone = pytz.timezone(name)
-        for utcoffset, dstoffset, tzabbrev in getattr(
-                tzone, '_transition_info', [[None, None, DT.datetime.now(tzone).tzname()]]):
-            tzones[tzabbrev].add(name)
-            abbrevs[name].add(tzabbrev)
-
-    # convert defaultdicts to dicts, sets to lists
-    tzones, abbrevs = return_dict(tzones), return_dict(abbrevs)
-    for key in tzones.keys():
-        tzones[key] = list(tzones[key])
-    for key in abbrevs.keys():
-        abbrevs[key] = list(abbrevs[key])
-
-    return tzones, abbrevs
-
-def _get_tzones_from_abbrev(abbrev):
-    """
-    return a list of timezone names that are compatible arguments to the pytz.timezone function
-    (e.g. America/Los_Angeles, Asia/Tokyo, Europe/Amsterdam, ...)
-
-    the list includes all timezone names encoded by the 'abbrev' input, e.g. 'PST', 'EST', etc.
-
-    This function is necessary because not all common timezone abbreviations are unique
-    """
-
-    import pytz
-
-    # return the abbrev if it is already a valid timezone name
-    if abbrev in pytz.all_timezones:
-        return [abbrev]
-
-    # otherwise return all possible unambiguous timezone names referenced by abbrev
-    tzones, _ = _get_tzones_abbrevs()
-    return sorted(tzones[abbrev])
-
-def get_utc_times(dt, zone):
+def get_utc_times(dt, zone, expected_zone=None):
     """
     given a datetime object 'dt' and a common time zone abbreviation 'zone' (e.g. PST, EST, CST, GMT, etc.),
     create a pandas DataFrame of all possible time differences with respect to UTC
@@ -318,15 +263,34 @@ def get_utc_times(dt, zone):
 
     the datetime object must be provided (a single table from a single time-reference is not good enough)
     because daylight savings time makes this conversion dynamic with time
+
+    the 'expected_zone' keyword argument limits the results to time zones that contain the 'expected_zone' string with unique UTC offset
+    (complicated but that is the only way with time zones)
     """
 
     import pytz
+    import collections
     import numpy as np
     import pandas as pd
     from datetime import datetime
 
-    # get unambiguous time zone names associated with 'zone' abbreviation
-    tzones = _get_tzones_from_abbrev(zone)
+    # it is easy if zone is already recognized in pytz.all_timezones
+    if zone in pytz.all_timezones:
+        tzones = [zone]
+
+    # otherwise get unambiguous time zone names associated with 'zone'
+    else:
+
+        # from https://stackoverflow.com/questions/36067621/python-all-possible-timezone-abbreviations-for-given-timezone-name-and-vise-ve
+        # it is a mapping of how every official time zone in the world defines their time relative to their perceived definitions of standard time zones like PST, EST, ...
+        # and also of how their time officially relates to the UTC international standard (same as GMT in practice)
+        tzones = collections.defaultdict(set)
+        for name in pytz.all_timezones:
+            tzone = pytz.timezone(name)
+            for utcoffset, dstoffset, tzabbrev in getattr(
+                    tzone, '_transition_info', [[None, None, datetime.now(tzone).tzname()]]):
+                tzones[tzabbrev].add(name)
+        tzones = sorted(tzones[zone])
 
     # get the UTC time in each unambiguous time zone name
     utc = pytz.timezone('UTC')
@@ -337,13 +301,24 @@ def get_utc_times(dt, zone):
     hrs = np.array([int(x.total_seconds() / 3600) for x in hrs])
 
     # return results in a DataFrame
-    results_dict = {'datetime': np.tile(dt, hrs.size),
+    results = pd.DataFrame(
+                data=
+                    {'datetime': np.tile(dt, hrs.size),
                     'zone': np.tile(zone, hrs.size),
                     'equivalent zones': tzones,
                     'datetime UTC': dts_utc,
-                    'hrs wrt UTC': hrs}
-    return pd.DataFrame(data=results_dict,
+                    'hrs wrt UTC': hrs},
                 columns=['datetime', 'zone', 'equivalent zones', 'datetime UTC', 'hrs wrt UTC'])
+
+    # adjust tzones based on the 'expected_zone' keyword argument
+    if expected_zone is not None:
+        idx = results['equivalent zones'].str.lower().str.contains(expected_zone.lower())
+        results = results[idx]
+
+        from ipdb import set_trace
+        #set_trace()
+
+    return results
 
 def longest_substring_from_list(data):
     """
