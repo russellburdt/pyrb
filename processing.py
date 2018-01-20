@@ -314,38 +314,10 @@ def get_utc_times(dt, zone):
 
     there is more than one possible time difference because every common time abbreviation can imply
     more than one unique timezone
-    -- for example, PST can imply timezones of America/Los_Angeles or America/Juneau
+    -- for example, PST can imply timezones of America/Los_Angeles or America/Juneau or many more!
 
     the datetime object must be provided (a single table from a single time-reference is not good enough)
     because daylight savings time makes this conversion dynamic with time
-
-    for example,
-
-    get_utc_times('PST', datetime(2018, 1, 12, 0, 0, 0))
-
-        datetime zone        equivalent zones              datetime UTC  \
-    0 2018-01-12  PST  America/Bahia_Banderas 2018-01-12 06:00:00+00:00
-    1 2018-01-12  PST           America/Boise 2018-01-12 07:00:00+00:00
-    2 2018-01-12  PST         America/Creston 2018-01-12 07:00:00+00:00
-    3 2018-01-12  PST          America/Dawson 2018-01-12 08:00:00+00:00
-    4 2018-01-12  PST    America/Dawson_Creek 2018-01-12 07:00:00+00:00
-
-       hrs wrt UTC
-    0           -6
-    1           -7
-    2           -7
-    3           -8
-    4           -7
-
-    OR
-
-    get_utc_times('America/Los_Angeles', datetime(2018, 1, 12, 0, 0, 0))
-
-        datetime                 zone     equivalent zones  \
-    0 2018-01-12  America/Los_Angeles  America/Los_Angeles
-
-                   datetime UTC  hrs wrt UTC
-    0 2018-01-12 08:00:00+00:00           -8
     """
 
     import pytz
