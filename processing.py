@@ -264,7 +264,8 @@ def get_utc_times(dt, zone, expected_zone=None):
     the datetime object must be provided (a single table from a single time-reference is not good enough)
     because daylight savings time makes this conversion dynamic with time
 
-    the 'expected_zone' keyword argument limits the results to time zones that contain the 'expected_zone' string with unique UTC offset
+    the 'expected_zone' keyword argument limits the results to time zones that contain the 'expected_zone' string with unique UTC offset,
+    this can greatly reduce the number or possible time zones returned
     (complicated but that is the only way with time zones)
     """
 
@@ -312,11 +313,19 @@ def get_utc_times(dt, zone, expected_zone=None):
 
     # adjust tzones based on the 'expected_zone' keyword argument
     if expected_zone is not None:
+
+        # filter for similar names
         idx = results['equivalent zones'].str.lower().str.contains(expected_zone.lower())
         results = results[idx]
 
-        from ipdb import set_trace
-        #set_trace()
+        # filter for unique offsets wrt UTC
+        uhrs = pd.unique(results['hrs wrt UTC'])
+        uresults = pd.DataFrame()
+        equivalent_zones = []
+        for uhr in uhrs:
+            equivalent_zones.append(results[results['hrs wrt UTC'] == uhr]['equivalent zones'].iloc[0])
+        idx = results['equivalent zones'].str.contains('|'.join(equivalent_zones))
+        results = results[idx]
 
     return results
 
