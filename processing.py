@@ -252,7 +252,7 @@ def TIR(data):
 
     return np.max(data) - np.min(data)
 
-def get_tzones_abbrevs():
+def _get_tzones_abbrevs():
     """
     return a tuple (tzones, abbrevs) where both items are dicts:
     these dicts map common but ambiguous timezone abbreviations (e.g. CET, CST, EST, PST, ...)
@@ -286,6 +286,92 @@ def get_tzones_abbrevs():
         abbrevs[key] = list(abbrevs[key])
 
     return tzones, abbrevs
+
+def _get_tzones_from_abbrev(abbrev):
+    """
+    return a list of timezone names that are compatible arguments to the pytz.timezone function
+    (e.g. America/Los_Angeles, Asia/Tokyo, Europe/Amsterdam, ...)
+
+    the list includes all timezone names encoded by the 'abbrev' input, e.g. 'PST', 'EST', etc.
+
+    This function is necessary because not all common timezone abbreviations are unique
+    """
+
+    import pytz
+
+    # return the abbrev if it is already a valid timezone name
+    if abbrev in pytz.all_timezones:
+        return [abbrev]
+
+    # otherwise return all possible unambiguous timezone names referenced by abbrev
+    tzones, _ = _get_tzones_abbrevs()
+    return sorted(tzones[abbrev])
+
+def get_utc_times(dt, zone):
+    """
+    given a datetime object 'dt' and a common time zone abbreviation 'zone' (e.g. PST, EST, CST, GMT, etc.),
+    create a pandas DataFrame of all possible time differences with respect to UTC
+
+    there is more than one possible time difference because every common time abbreviation can imply
+    more than one unique timezone
+    -- for example, PST can imply timezones of America/Los_Angeles or America/Juneau
+
+    the datetime object must be provided (a single table from a single time-reference is not good enough)
+    because daylight savings time makes this conversion dynamic with time
+
+    for example,
+
+    get_utc_times('PST', datetime(2018, 1, 12, 0, 0, 0))
+
+        datetime zone        equivalent zones              datetime UTC  \
+    0 2018-01-12  PST  America/Bahia_Banderas 2018-01-12 06:00:00+00:00
+    1 2018-01-12  PST           America/Boise 2018-01-12 07:00:00+00:00
+    2 2018-01-12  PST         America/Creston 2018-01-12 07:00:00+00:00
+    3 2018-01-12  PST          America/Dawson 2018-01-12 08:00:00+00:00
+    4 2018-01-12  PST    America/Dawson_Creek 2018-01-12 07:00:00+00:00
+
+       hrs wrt UTC
+    0           -6
+    1           -7
+    2           -7
+    3           -8
+    4           -7
+
+    OR
+
+    get_utc_times('America/Los_Angeles', datetime(2018, 1, 12, 0, 0, 0))
+
+        datetime                 zone     equivalent zones  \
+    0 2018-01-12  America/Los_Angeles  America/Los_Angeles
+
+                   datetime UTC  hrs wrt UTC
+    0 2018-01-12 08:00:00+00:00           -8
+    """
+
+    import pytz
+    import numpy as np
+    import pandas as pd
+    from datetime import datetime
+
+    # get unambiguous time zone names associated with 'zone' abbreviation
+    tzones = _get_tzones_from_abbrev(zone)
+
+    # get the UTC time in each unambiguous time zone name
+    utc = pytz.timezone('UTC')
+    dts_utc = [pytz.timezone(x).localize(dt).astimezone(utc) for x in tzones]
+
+    # find the hours of time difference relative to UTC in each unambiguous time zone name
+    hrs = dt - np.array([x.replace(tzinfo=None) for x in dts_utc])
+    hrs = np.array([int(x.total_seconds() / 3600) for x in hrs])
+
+    # return results in a DataFrame
+    results_dict = {'datetime': np.tile(dt, hrs.size),
+                    'zone': np.tile(zone, hrs.size),
+                    'equivalent zones': tzones,
+                    'datetime UTC': dts_utc,
+                    'hrs wrt UTC': hrs}
+    return pd.DataFrame(data=results_dict,
+                columns=['datetime', 'zone', 'equivalent zones', 'datetime UTC', 'hrs wrt UTC'])
 
 def longest_substring_from_list(data):
     """
