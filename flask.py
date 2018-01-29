@@ -1,6 +1,7 @@
 
 """
 short flask utility methods
+R Burdt, 1 Jan 2018
 """
 
 
