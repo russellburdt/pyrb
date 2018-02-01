@@ -53,8 +53,32 @@ def linspace(start, stop, num):
     start = (start - tref).total_seconds()
     stop = (stop - tref).total_seconds()
 
-    # create the linspace array and convert back to datetime objects
+    # create the time array and convert back to datetime objects
     time = np.linspace(start, stop, num)
+    return np.array([tref + timedelta(seconds=x) for x in time])
+
+def arange(start, stop, step):
+    """
+    exactly the same as numpy.arange is start, stop, and step are all not datetime / timedelta objects
+    if start and stop are datetime objects, and step is a timedelta object:
+        * return an array of datetime objects between start (inclusive) and stop (maybe inclusive) at step intervals
+    (numpy.arange does work with datetime / timedelta objects, but it converts output array to numpy native datetime objects, not datetimes...)
+    """
+
+    import numpy as np
+    from datetime import datetime, timedelta
+
+    # use np.linspace in case start and stop are both not datetime objects
+    if (not isinstance(start, datetime)) or (not isinstance(start, datetime)) or (not isinstance(step, timedelta)):
+        return np.arange(start, stop, num)
+
+    # convert start and stop to seconds since a reference time
+    tref = datetime.strptime('1 Jan 1900', '%d %b %Y')
+    start = (start - tref).total_seconds()
+    stop = (stop - tref).total_seconds()
+
+    # create the time array and convert back to datetime objects
+    time = np.arange(start, stop, step.total_seconds())
     return np.array([tref + timedelta(seconds=x) for x in time])
 
 def loadmat(fname):
