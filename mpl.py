@@ -123,8 +123,8 @@ def format_axes(xlabel, ylabel, title=None, axes=None):
     if axes is None:
         axes = plt.gca()
 
-    # make sure ax is a list
-    if type(axes) is not list:
+    # make sure ax is iterable
+    if not hasattr(axes, '__iter__'):
         axes = [axes]
 
     # format axes for all axes in ax list
@@ -257,7 +257,6 @@ def open_figure(fig_title, rows=1, columns=1, **kwargs):
         fig.canvas.set_window_title(fig_title)
 
     return fig, ax
-
 
 def get_random_closed_data_marker(n=None):
     """
