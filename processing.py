@@ -35,6 +35,19 @@ def matlab2datetime(mat_dnums):
     dayfrac = np.array([timedelta(days=(x % 1)) - timedelta(days=366) for x in mat_dnums])
     return day + dayfrac
 
+def numpy_datetime64_to_datetime(dt):
+    """
+    convert an array of numpy datetime64 objects to an array of datetime objects
+    """
+    import numpy as np
+    from datetime import datetime
+
+    assert isinstance(dt, np.ndarray)
+    assert dt.dtype.type == np.datetime64
+
+    tref = np.datetime64('1970-01-01T00:00:00Z')
+    return np.array([datetime.utcfromtimestamp((x - tref) / np.timedelta64(1, 's')) for x in dt])
+
 def linspace(start, stop, num):
     """
     exactly the same as numpy.linspace if start and stop are both not datetime objects
