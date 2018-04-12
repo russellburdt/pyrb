@@ -366,6 +366,41 @@ def get_utc_times(dt, zone, expected_zone=None):
 
     return results
 
+def get_unambiguous_tz(tz):
+    """
+    return an unambiguous timezone string given the ambiguous timezone string 'tz'
+    'get_utc_times' can be used to help explore the possible unambiguous timezone strings
+
+    this function is based on the author's interpretation of the intended meaning of ambiguous timezones
+    the intended meaning of ambiguous timezones for other users can be different
+    """
+
+    import pytz
+    from datetime import datetime
+
+    # it is easy if tz is already recognized in pytz.all_timezones
+    if tz in pytz.all_timezones:
+        return tz
+
+    if tz == 'PST':
+        tz = 'US/Pacific'
+    elif tz == 'JST':
+        tz = 'Asia/Hong_Kong'
+    elif tz == 'CST':
+        tz = 'US/Central'
+    elif tz == 'EDT':
+        tz = 'America/New_York'
+    elif tz == 'PDT':
+        tz = 'America/Los_Angeles'
+    elif tz == 'CEST':
+        tz = 'Europe/Berlin'
+    else:
+        print('unknown and ambiguous timezone, more logic needed')
+        return None
+
+    assert get_utc_times(datetime.now(), tz)['equivalent zones'].str.contains(tz).any()
+    return tz
+
 def longest_substring_from_list(data):
     """
     return the longest common substring from a list of strings, inefficiently
