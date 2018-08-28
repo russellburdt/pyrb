@@ -83,7 +83,7 @@ def arange(start, stop, step):
 
     # use np.linspace in case start and stop are both not datetime objects
     if (not isinstance(start, datetime)) or (not isinstance(start, datetime)) or (not isinstance(step, timedelta)):
-        return np.arange(start, stop, num)
+        return np.arange(start, stop, step)
 
     # convert start and stop to seconds since a reference time
     tref = datetime.strptime('1 Jan 1900', '%d %b %Y')
