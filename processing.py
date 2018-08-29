@@ -203,17 +203,82 @@ def movingstd(x, k):
     from pandas import DataFrame
     from numpy import array
 
-    return array(DataFrame(x).rolling(window=k, center=False).std())
+    if x.ndim == 1:
+        return array(DataFrame(x).rolling(window=k, center=False).std()).squeeze()
+
+    elif x.ndim == 2:
+        return array(DataFrame(x).rolling(window=k, center=False).std())
+
+    else:
+        raise ValueError('too many dims')
 
 def movingaverage(x, k):
     """
     1d or 2d moving average in a rectangular window
+
+    for example,
+
+    In [4]: a = np.array([0, 0, 1, 1, 1, 1, 0, 0])
+
+    In [5]: b = a.reshape(-1, 2)
+
+    In [6]: a
+    Out[6]: array([0, 0, 1, 1, 1, 1, 0, 0])
+
+    In [7]: b
+    Out[7]:
+    array([[0, 0],
+           [1, 1],
+           [1, 1],
+           [0, 0]])
+
+    In [8]: movingaverage(a, 3)
+    Out[8]:
+    array([        nan,         nan,  0.33333333,  0.66666667,  1.        ,
+            1.        ,  0.66666667,  0.33333333])
+
+    In [9]: movingaverage(a, 3).shape
+    Out[9]: (8,)
+
+    In [10]: movingaverage(b, 3)
+    Out[10]:
+    array([[        nan,         nan],
+           [        nan,         nan],
+           [ 0.66666667,  0.66666667],
+           [ 0.66666667,  0.66666667]])
+
+    In [11]: movingaverage(b, 3).shape
+    Out[11]: (4, 2)
     """
 
     from pandas import DataFrame
     from numpy import array
 
-    return array(DataFrame(x).rolling(window=k, center=False).mean())
+    if x.ndim == 1:
+        return array(DataFrame(x).rolling(window=k, center=False).mean()).squeeze()
+
+    elif x.ndim == 2:
+        return array(DataFrame(x).rolling(window=k, center=False).mean())
+
+    else:
+        raise ValueError('too many dims')
+
+def movingsum(x, k):
+    """
+    1d or 2d moving sum in a rectangular window
+    """
+
+    from pandas import DataFrame
+    from numpy import array
+
+    if x.ndim == 1:
+        return array(DataFrame(x).rolling(window=k, center=False).sum()).squeeze()
+
+    elif x.ndim == 2:
+        return array(DataFrame(x).rolling(window=k, center=False).sum())
+
+    else:
+        raise ValueError('too many dims')
 
 def is_writeable(path):
     """
