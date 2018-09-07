@@ -32,6 +32,7 @@ matlab2datetime = processing.matlab2datetime
 memoized = processing.memoized
 movingaverage = processing.movingaverage
 movingstd = processing.movingstd
+movingsum = processing.movingsum
 numpy_datetime64_to_datetime = processing.numpy_datetime64_to_datetime
 pngs2ppt = processing.pngs2ppt
 return_aliased_freq = processing.return_aliased_freq

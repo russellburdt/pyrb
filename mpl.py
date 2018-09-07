@@ -228,13 +228,16 @@ def save_pngs(save_dir, maximize=False, close=True):
     if close:
         plt.close('all')
 
-def open_figure(fig_title, rows=1, columns=1, **kwargs):
+def open_figure(fig_title, rows=1, columns=1, handle_2d1d=False, **kwargs):
     """
     wrapper around plt.subplots:
     -- opens a figure of fig_title, returns fig and axes objects
     -- if a figure of fig_title already exists, returns existing fig and axes objects
     -- **kwargs are passed to plt.subplots
-    -- this method is useful when additional data needs to be added to existing axes
+    -- this method is useful when additional data needs to be added to existing axes, and only
+        the figure name is available (i.e. the figure object is not directly available)
+    -- the 'handle_2d1d' (default False) kwarg always returns 1d arrays with an extra dimension, i.e. shape is (x, 1)
+        in doing so, the method can transition from 2d to 1d behavior without errors
     """
 
     import matplotlib.pyplot as plt
@@ -256,6 +259,14 @@ def open_figure(fig_title, rows=1, columns=1, **kwargs):
         fig, ax = plt.subplots(rows, columns, **kwargs)
         fig.canvas.set_window_title(fig_title)
 
+    # add an extra dimension to 1d ax array if requested
+    if handle_2d1d and ax.ndim == 1:
+        if rows == 1:
+            ax = np.expand_dims(ax, axis=0)
+        elif columns == 1:
+            ax = np.expand_dims(ax, axis=1)
+
+    # return figure and axes objects
     return fig, ax
 
 def get_random_closed_data_marker(n=None):
