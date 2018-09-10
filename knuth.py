@@ -12,6 +12,14 @@ def algorithm_u(ns, m):
         https://codereview.stackexchange.com/questions/1526/finding-all-k-subset-partitions
     - the algorithm returns
         all set partitions with a given number of blocks, as a python generator object
+
+    e.g.
+        In [1]: gen = algorithm_u(['A', 'B', 'C'], 2)
+
+        In [2]: list(gen)
+        Out[2]: [[['A', 'B'], ['C']],
+                  [['A'], ['B', 'C']],
+                  [['A', 'C'], ['B']]]
     """
 
     def visit(n, a):
@@ -92,15 +100,24 @@ def algorithm_u(ns, m):
 
 class algorithm_u_permutations:
     """
-    returns all permutations of all set partitions with a given number of blocks
+    generator for all permutations of all set partitions with a given number of blocks
+    e.g.
+        In [4]: gen = algorithm_u_permutations(['A', 'B', 'C'], 2)
+
+        In [5]: list(gen)
+        Out[5]:
+        [(['A', 'B'], ['C']),
+         (['C'], ['A', 'B']),
+         (['A'], ['B', 'C']),
+         (['B', 'C'], ['A']),
+         (['A', 'C'], ['B']),
+         (['B'], ['A', 'C'])]
     """
 
     from itertools import permutations
 
     def __init__(self, ns, m):
 
-        self.ns = ns
-        self.m = m
         self.au = algorithm_u(ns, m)
         self.perms = self.permutations(next(self.au))
 
