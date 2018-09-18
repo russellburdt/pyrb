@@ -94,9 +94,9 @@ def arange(start, stop, step):
     time = np.arange(start, stop, step.total_seconds())
     return np.array([tref + timedelta(seconds=x) for x in time])
 
-def is_datetime_workweek_begin(dt):
+def is_datetime_week_number_begin(dt):
     """
-    determine if the datetime object dt represents the beginning of an isocalendar work week
+    determine if the datetime object dt represents the beginning of an isocalendar week number
     """
 
     import numpy as np
@@ -111,9 +111,9 @@ def is_datetime_workweek_begin(dt):
             dt.strftime(r'%d %b %Y'), week[np.where(np.diff(workweek))[0][0] + 1].strftime(r'%d %b %Y')))
         return False
 
-def is_datetime_workweek_end(dt):
+def is_datetime_week_number_end(dt):
     """
-    determine if the datetime object dt represents the end of an isocalendar work week
+    determine if the datetime object dt represents the end of an isocalendar week number
     """
 
     import numpy as np
@@ -127,6 +127,24 @@ def is_datetime_workweek_end(dt):
         print('{} does not represent the end of an isocalendar workweek\ntry {} instead'.format(
             dt.strftime(r'%d %b %Y'), week[np.where(np.diff(workweek) == 1)[0][0]].strftime(r'%d %b %Y')))
         return False
+
+def datetime_to_week_number(dt):
+    """
+    convert a datetime object to an isocalendar week number in the format '2018-33'
+    information about the day of the week is lost in this conversion
+    """
+    dt = dt.isocalendar()
+    return '{}-{:02d}'.format(dt[0], dt[1])
+
+def week_number_to_datetime(week, day_of_week=1):
+    """
+    convert an isocalendar week number in the format '2018-17' to a datetime object
+    the day of the week for each week number must be provided as input, or the first day is always assumed
+    """
+    from datetime import datetime
+
+    week += '-{}'.format(day_of_week)
+    return datetime.strptime(week, r'%Y-%W-%w')
 
 def loadmat(fname):
     """
