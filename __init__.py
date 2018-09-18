@@ -21,6 +21,8 @@ update_figs = mpl.update_figs
 # hooks to pyrb.processing
 from pyrb import processing
 arange = processing.arange
+is_datetime_workweek_begin = processing.is_datetime_workweek_begin
+is_datetime_workweek_end = processing.is_datetime_workweek_end
 create_filename = processing.create_filename
 get_unambiguous_tz = processing.get_unambiguous_tz
 get_utc_times = processing.get_utc_times

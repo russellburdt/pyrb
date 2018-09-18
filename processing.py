@@ -94,6 +94,40 @@ def arange(start, stop, step):
     time = np.arange(start, stop, step.total_seconds())
     return np.array([tref + timedelta(seconds=x) for x in time])
 
+def is_datetime_workweek_begin(dt):
+    """
+    determine if the datetime object dt represents the beginning of an isocalendar work week
+    """
+
+    import numpy as np
+    from datetime import datetime, timedelta
+
+    week = arange(dt, dt + timedelta(days=7), timedelta(days=1))
+    workweek = [x.isocalendar()[1] for x in week]
+    if np.unique(workweek).size == 1:
+        return True
+    else:
+        print('{} does not represent the beginning of an isocalendar workweek\ntry {} instead'.format(
+            dt.strftime(r'%d %b %Y'), week[np.where(np.diff(workweek))[0][0] + 1].strftime(r'%d %b %Y')))
+        return False
+
+def is_datetime_workweek_end(dt):
+    """
+    determine if the datetime object dt represents the end of an isocalendar work week
+    """
+
+    import numpy as np
+    from datetime import datetime, timedelta
+
+    week = arange(dt - timedelta(days=6), dt + timedelta(days=1), timedelta(days=1))
+    workweek = [x.isocalendar()[1] for x in week]
+    if np.unique(workweek).size == 1:
+        return True
+    else:
+        print('{} does not represent the end of an isocalendar workweek\ntry {} instead'.format(
+            dt.strftime(r'%d %b %Y'), week[np.where(np.diff(workweek) == 1)[0][0]].strftime(r'%d %b %Y')))
+        return False
+
 def loadmat(fname):
     """
     this function should be called instead of directly calling scipy.io.loadmat
