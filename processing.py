@@ -11,17 +11,17 @@ def create_filename(fn):
     keepcharacters = (' ','.','_')
     return "".join(c for c in fn if c.isalnum() or c in keepcharacters).rstrip()
 
-def return_aliased_freq(f, fs):
+def get_aliased_freq(f, fs):
     """
-    return the aliased frequency of f sampled at fs
+    return aliased frequency of f sampled at fs
     """
     import numpy as np
 
-    fs = fs / 2
-    if np.ceil(f / fs) % 2:
-        return np.remainder(f, fs)
+    fn = fs / 2
+    if np.int(f / fn) % 2 == 0:
+        return f % fn
     else:
-        return fs - np.remainder(f, fs)
+        return fn - (f % fn)
 
 def matlab2datetime(mat_dnums):
     """
@@ -212,7 +212,7 @@ def run_notch_filter_example():
     freq, psd = signal.welch(y, fs=fs, nperseg=512)
 
     # update freqs for aliasing, as any freq greater than fs/2 will alias to some other freq less than fs/2
-    freqs = [return_aliased_freq(x, fs) for x in freqs]
+    freqs = [get_aliased_freq(x, fs) for x in freqs]
 
     # select a random 'freqs' to filter, mapped to 0 to 1 scale where fs/2 maps to 1
     wf = np.random.choice(freqs) / (fs/2)
