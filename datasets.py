@@ -46,7 +46,7 @@ from ipdb import set_trace
 
 def supervised_blank():
     """
-    retrieve information from UCI Machine Learning Repository Ecoli dataset
+    retrieve information from UCI Machine Learning Repository
 
     """
 
@@ -90,7 +90,7 @@ def supervised_blank():
 
 def supervised_a():
     """
-    retrieve information from UCI Machine Learning Repository Ecoli dataset
+    retrieve information from UCI Machine Learning Repository
 
     """
 
@@ -132,97 +132,209 @@ def supervised_a():
 
     return out
 
-def supervised_b():
+def supervised_banknote():
     """
-    retrieve information from UCI Machine Learning Repository Ecoli dataset
-
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/banknote+authentication
     """
 
     # initialize an output dictionary, assign a text description to the dataset
     out = {}
-    out['name'] = ''
+    out['name'] = 'BANKNOTE'
     out['text description'] = \
-        requests.get(r'').text
+        'Data were extracted from images that were taken from genuine and forged banknote-like specimens. For digitization, an industrial camera usually used for print inspection was used. The final images have 400x 400 pixels. Due to the object lens and distance to the investigated object gray-scale pictures with a resolution of about 660 dpi were gained. Wavelet Transform tool were used to extract features from images.'
 
     # read data from url; parse to X, y numpy arrays
-    data = requests.get(r'').text
-    data = data.split('\n')[:-1]
-    data = [x.split() for x in data]
-    assert np.unique([len(x) for x in data]) == 9999999999
+    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/00267/data_banknote_authentication.txt').text
+    data = data.split('\n')
+    data = [x.split(',') for x in data]
+    data = [[x.strip() for x in y] for y in data]
+    assert np.unique([len(x) for x in data]) == 5
     data = np.array(data)
     X = data[:, :-1]
     y = data[:, -1]
 
     # original data, including all original numeric and categorical values
-    out['X0'] = pd.DataFrame(data=X, columns=[])
-    out['y0'] = pd.Series(data=y, name='')
-
-    # create LabelEncoder objects, save to out
-    # le1 = LabelEncoder()
-    # le1.fit(out['X0']['Sequence Name'])
-    # le2 = LabelEncoder()
-    # le2.fit(out['y0'])
-    # out['encoders'] = {}
-    # out['encoders']['X0, Sequence Name'] = le1
-    # out['encoders']['y0'] = le2
+    out['X0'] = pd.DataFrame(data=X, columns=['wavelet{}'.format(x) for x in range(4)])
+    out['y0'] = pd.Series(data=y, name='banknote authenticity')
 
     # create clean X, y data
-    # out['X'] = out['X0'].copy()
-    # out['X']['Sequence Name'] = le1.transform(out['X']['Sequence Name'])
-    # out['X'] = out['X'].apply(pd.to_numeric)
-    # out['y'] = pd.Series(data=le2.transform(out['y0'].values), name=out['y0'].name)
-    # assert pd.isnull(out['X'].values).sum() == 0
-    # assert pd.isnull(out['y']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['X'] = out['X'].apply(pd.to_numeric)
+    out['y'] = pd.to_numeric(out['y0'].copy())
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
 
     return out
 
-def supervised_c():
+def supervised_adult():
     """
-    retrieve information from UCI Machine Learning Repository Ecoli dataset
-
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/Adult
     """
 
     # initialize an output dictionary, assign a text description to the dataset
     out = {}
-    out['name'] = ''
+    out['name'] = 'ADULT'
     out['text description'] = \
-        requests.get(r'').text
+        requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.names').text
 
     # read data from url; parse to X, y numpy arrays
-    data = requests.get(r'').text
-    data = data.split('\n')[:-1]
-    data = [x.split() for x in data]
-    assert np.unique([len(x) for x in data]) == 9999999999
+    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data').text
+    data = data.split('\n')[:-2]
+    data = [x.split(',') for x in data]
+    data = [[x.strip() for x in y] for y in data]
+    assert np.unique([len(x) for x in data]) == 15
     data = np.array(data)
     X = data[:, :-1]
     y = data[:, -1]
 
     # original data, including all original numeric and categorical values
-    out['X0'] = pd.DataFrame(data=X, columns=[])
-    out['y0'] = pd.Series(data=y, name='')
+    columns = ['age', 'workclass','fnlwgt', 'education', 'education-num', 'marital-status', 'occupation',
+               'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week', 'native-country']
+    out['X0'] = pd.DataFrame(data=X, columns=columns)
+    out['y0'] = pd.Series(data=y, name='income, more or less than 50k')
 
     # create LabelEncoder objects, save to out
-    # le1 = LabelEncoder()
-    # le1.fit(out['X0']['Sequence Name'])
-    # le2 = LabelEncoder()
-    # le2.fit(out['y0'])
-    # out['encoders'] = {}
-    # out['encoders']['X0, Sequence Name'] = le1
-    # out['encoders']['y0'] = le2
+    encoders = []
+    encoder_columns = []
+    for col, cdata in out['X0'].iteritems():
+        try:
+            pd.to_numeric(cdata)
+        except ValueError:
+            le = LabelEncoder()
+            le.fit(cdata)
+            encoders.append(le)
+            encoder_columns.append(col)
+    le = LabelEncoder()
+    le.fit(out['y0'])
 
     # create clean X, y data
-    # out['X'] = out['X0'].copy()
-    # out['X']['Sequence Name'] = le1.transform(out['X']['Sequence Name'])
-    # out['X'] = out['X'].apply(pd.to_numeric)
-    # out['y'] = pd.Series(data=le2.transform(out['y0'].values), name=out['y0'].name)
-    # assert pd.isnull(out['X'].values).sum() == 0
-    # assert pd.isnull(out['y']).sum() == 0
+    out['X'] = out['X0'].copy()
+    for col, encoder in zip(encoder_columns, encoders):
+        out['X'][col] = encoder.transform(out['X'][col])
+    out['X'] = out['X'].apply(pd.to_numeric)
+    out['y'] = pd.Series(data=le.transform(out['y0'].values), name=out['y0'].name)
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
+
+    return out
+
+def supervised_skin_segmentation():
+    """
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/Skin+Segmentation
+    """
+
+    # initialize an output dictionary, assign a text description to the dataset
+    out = {}
+    out['name'] = 'SKIN SEGMENTATION'
+    out['text description'] = 'This dataset is of the dimension 245057 * 4 where first three columns are B,G,R (x1,x2, and x3 features) values and fourth column is of the class labels (decision variable y).'
+
+    # read data from url; parse to X, y numpy arrays
+    fn = r'https://archive.ics.uci.edu/ml/machine-learning-databases/00229/Skin_NonSkin.txt'
+    data = requests.get(fn).text
+    data = data.split('\n')[:-1]
+    data = [x.split() for x in data]
+    assert np.unique([len(x) for x in data]) == 4
+    data = np.array(data)
+    X = data[:, :-1]
+    y = data[:, -1]
+
+    # original data, including all original numeric and categorical values
+    out['X0'] = pd.DataFrame(data=X, columns=['B', 'G', 'R'])
+    out['y0'] = pd.Series(data=y, name='skin region')
+
+    # create clean X, y data
+    out['X'] = out['X0'].copy()
+    out['X'] = out['X'].apply(pd.to_numeric)
+    out['y'] = pd.to_numeric(out['y0'].copy())
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
+
+    return out
+
+def supervised_yeast():
+    """
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/Yeast
+    """
+
+    # initialize an output dictionary, assign a text description to the dataset
+    out = {}
+    out['name'] = 'YEAST'
+    out['text description'] = \
+        requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/yeast/yeast.names').text
+
+    # read data from url; parse to X, y numpy arrays
+    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/yeast/yeast.data').text
+    data = data.split('\n')[:-1]
+    data = [x.split() for x in data]
+    assert np.unique([len(x) for x in data]) == 10
+    data = np.array(data)
+    X = data[:, :-1]
+    y = data[:, -1]
+
+    # original data, including all original numeric and categorical values
+    columns = ['Sequence Name', 'mcg', 'gvh', 'alm', 'mit', 'erl', 'pox', 'vac', 'nuc']
+    out['X0'] = pd.DataFrame(data=X, columns=columns)
+    out['y0'] = pd.Series(data=y, name='localization site')
+
+    # create LabelEncoder objects, save to out
+    le1 = LabelEncoder()
+    le1.fit(out['X0']['Sequence Name'])
+    le2 = LabelEncoder()
+    le2.fit(out['y0'])
+    out['encoders'] = {}
+    out['encoders']['X0, Sequence Name'] = le1
+    out['encoders']['y0'] = le2
+
+    # create clean X, y data
+    out['X'] = out['X0'].copy()
+    out['X']['Sequence Name'] = le1.transform(out['X']['Sequence Name'])
+    out['X'] = out['X'].apply(pd.to_numeric)
+    out['y'] = pd.Series(data=le2.transform(out['y0'].values), name=out['y0'].name)
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
+
+    return out
+
+def supervised_wireless_localization():
+    """
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/Wireless+Indoor+Localization
+    """
+
+    # initialize an output dictionary, assign a text description to the dataset
+    out = {}
+    out['name'] = 'WIRELESS LOCALIZATION'
+    out['text description'] = 'Each attribute is wifi signal strength observed on smartphone'
+
+    # read data from url; parse to X, y numpy arrays
+    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/00422/wifi_localization.txt').text
+    data = data.split('\n')[:-1]
+    data = [x.split() for x in data]
+    assert np.unique([len(x) for x in data]) == 8
+    data = np.array(data)
+    X = data[:, :-1]
+    y = data[:, -1]
+
+    # original data, including all original numeric and categorical values
+    out['X0'] = pd.DataFrame(data=X, columns=['signal{}'.format(x) for x in range(1, 8)])
+    out['y0'] = pd.Series(data=y, name='location index')
+
+    # create clean X, y data
+    out['X'] = out['X0'].copy()
+    out['X'] = out['X'].apply(pd.to_numeric)
+    out['y'] = pd.to_numeric(out['y0'].copy())
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
 
     return out
 
 def supervised_ecoli():
     """
-    retrieve information from UCI Machine Learning Repository Ecoli dataset
+    retrieve information from UCI Machine Learning Repository
     https://archive.ics.uci.edu/ml/datasets/Ecoli
     """
 
