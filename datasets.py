@@ -40,7 +40,7 @@ import pandas as pd
 from itertools import chain
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder
-from sklearn.datasets import load_wine, load_digits
+from sklearn.datasets import load_wine, load_digits, load_iris
 from ipdb import set_trace
 
 
@@ -376,42 +376,6 @@ def supervised_ecoli():
 
     return out
 
-def supervised_lung_cancer():
-    """
-    retrieve information from UCI Machine Learning Lung Cancer dataset
-    https://archive.ics.uci.edu/ml/datasets/Lung+Cancer
-    """
-
-    # initialize an output dictionary, assign a text description to the dataset
-    out = {}
-    out['name'] = 'LUNG CANCER'
-    out['text description'] = \
-        requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/lung-cancer/lung-cancer.names').text
-
-    # read data from url; parse to X, y numpy arrays
-    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/lung-cancer/lung-cancer.data').text
-    data = data.split('\n')[:-2]
-    data = [x.split(',') for x in data]
-    assert np.unique([len(x) for x in data]) == 57
-    data = np.array(data)
-    X = data[:, 1:]
-    y = data[:, 0]
-
-    # original data, including all original numeric and categorical values
-    # (there are no feature labels for this dataset)
-    out['X0'] = pd.DataFrame(data=X, columns=['feature{}'.format(x) for x in range(56)])
-    out['y0'] = pd.Series(data=y, name='type of lung cancer')
-
-    # create clean X, y data
-    out['X'] = out['X0'].copy()
-    out['X'][out['X'] == '?'] = -1
-    out['X'] = out['X'].apply(pd.to_numeric)
-    out['y'] = pd.to_numeric(out['y0'].copy())
-    assert pd.isnull(out['X'].values).sum() == 0
-    assert pd.isnull(out['y']).sum() == 0
-
-    return out
-
 def supervised_mammographic_mass():
     """
     retrieve information from UCI Machine Learning Mammographic Mass dataset
@@ -557,6 +521,32 @@ def supervised_digits():
     # load training and class data into DataFrames
     out['X0'] = pd.DataFrame(data=data.data, columns=['pixel {}'.format(x) for x in range(64)])
     out['y0'] = pd.Series(data=data.target, name='digit in range 0-9')
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
+
+    return out
+
+def supervised_iris():
+    """
+    retrieve information from scikit-learn built-in dataset
+    sklearn.datasets.load_iris
+    """
+
+    # load sklearn dataset
+    data = load_iris()
+
+    # initialize an output dictionary, assign a text description to the dataset
+    out = {}
+    out['name'] = 'IRIS'
+    out['text description'] = data.DESCR
+
+    # load training and class data into DataFrames
+    out['X0'] = pd.DataFrame(data=data.data, columns=data.feature_names)
+    out['y0'] = pd.Series(data=data.target, name='iris type')
 
     # create clean X, y data - no data cleaning required in this case
     assert pd.isnull(out['X0'].values).sum() == 0
