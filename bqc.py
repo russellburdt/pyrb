@@ -28,27 +28,30 @@ plt.style.use('bmh')
 improve classification accuracy with a clustering pre-processing step
 """
 
-data = datasets.supervised_banknote()
+# function to get classification accuracy
+def get_classifier_accuracy(X, y):
+    classifiers = [
+        GaussianNB,
+        # SVC,
+        RandomForestClassifier,
+        KNeighborsClassifier,
+        LogisticRegression,
+        DecisionTreeClassifier]
+    accuracy = []
+    print('X shape {}x{}; ysize {}; unique y {}'.format(
+        X.shape[0], X.shape[1], y.size, np.unique(y).size))
+    for classifier in classifiers:
+        algo = classifier()
+        acc = cross_val_score(algo, X, y, cv=5).mean()
+        accuracy.append(acc)
+        print('{} accuracy, {:.1f}%'.format(classifier.__name__, 100 * acc))
+    print('max classification accuracy, {:.1f}%'.format(100 * max(accuracy)))
+
+data = datasets.supervised_skin_segmentation()
 X, y = data['X'].values, data['y'].values
 # idx = np.random.randint(0, y.size, 10000)
 # X, y = X[idx, :], y[idx]
-
-# get classification accuracy
-def get_classifier_accuracy():
-classifiers = [GaussianNB,
-               # SVC,
-               RandomForestClassifier,
-               KNeighborsClassifier,
-               LogisticRegression,
-               DecisionTreeClassifier]
-accuracy = []
-print(X.shape)
-for classifier in classifiers:
-    algo = classifier()
-    acc = cross_val_score(algo, X, y, cv=5).mean()
-    accuracy.append(acc)
-    print('{} accuracy, {:.1f}%'.format(classifier.__name__, 100 * acc))
-print('max classification accuracy, {:.1f}%'.format(100 * max(accuracy)))
+get_classifier_accuracy(X, y)
 
 # determine best number of clusters with the elbow method
 # elbow = []
@@ -89,17 +92,4 @@ print('best {}-cluster accuracy, {:.1f}%'.format(n_clusters, 100 * max(scores)))
 model = models[np.argmax(scores)]
 ycluster = model.predict(X)
 X = np.hstack((X, np.expand_dims(ycluster, axis=1)))
-classifiers = [GaussianNB,
-               # SVC,
-               RandomForestClassifier,
-               KNeighborsClassifier,
-               LogisticRegression,
-               DecisionTreeClassifier]
-accuracy = []
-print(X.shape)
-for classifier in classifiers:
-    algo = classifier()
-    acc = cross_val_score(algo, X, y, cv=5).mean()
-    accuracy.append(acc)
-    print('{} accuracy, {:.1f}%'.format(classifier.__name__, 100 * acc))
-print('max classification accuracy, {:.1f}%'.format(100 * max(accuracy)))
+get_classifier_accuracy(X, y)
