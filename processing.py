@@ -592,7 +592,7 @@ def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
         title = 'Created with python-pptx {}'.format(pptx.__version__)
 
     # get all png files in a list, return if empty
-    pngs = glob(os.path.join(pngs_dir, r'*.png'))
+    pngs = sorted(glob(os.path.join(pngs_dir, r'*.png')))
     if len(pngs) == 0:
         print('No png images found, returning without creating a presentation')
         return
