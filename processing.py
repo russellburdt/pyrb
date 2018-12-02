@@ -107,7 +107,7 @@ def find_numpy_array_in_other_numpy_array(a, b):
     """
     import numpy as np
     ok = []
-    for idx in range(b.size - a.size):
+    for idx in range(b.size - a.size + 1):
         if np.all(b[idx : idx + a.size] == a):
             ok.append(idx)
     return ok
