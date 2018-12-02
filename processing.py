@@ -94,6 +94,24 @@ def arange(start, stop, step):
     time = np.arange(start, stop, step.total_seconds())
     return np.array([tref + timedelta(seconds=x) for x in time])
 
+def find_numpy_array_in_other_numpy_array(a, b):
+    """
+    find indices in b where the complete array a is found in consecutive elements
+
+    e.g.
+    a = np.array([1, 1])
+    b = np.array([2, 3, 3, 1, 1, 1, 8, 3, 1, 6, 0, 1, 1, 3, 4])
+
+    find_numpy_array_in_other_numpy_array(a, b) returns
+    [3, 4, 11]
+    """
+    import numpy as np
+    ok = []
+    for idx in range(b.size - a.size):
+        if np.all(b[idx : idx + a.size] == a):
+            ok.append(idx)
+    return ok
+
 def is_datetime_week_number_begin(dt):
     """
     determine if the datetime object dt represents the beginning of an isocalendar week number
