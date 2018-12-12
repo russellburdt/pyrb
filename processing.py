@@ -94,7 +94,7 @@ def arange(start, stop, step):
     time = np.arange(start, stop, step.total_seconds())
     return np.array([tref + timedelta(seconds=x) for x in time])
 
-def find_numpy_array_in_other_numpy_array(a, b):
+def find_numpy_array_in_other_numpy_array(a, b, pbar=False):
     """
     find indices in b where the complete array a is found in consecutive elements
 
@@ -106,8 +106,9 @@ def find_numpy_array_in_other_numpy_array(a, b):
     [3, 4, 11]
     """
     import numpy as np
+    from tqdm import tqdm
     ok = []
-    for idx in range(b.size - a.size + 1):
+    for idx in tqdm(range(b.size - a.size + 1), desc='scanning array', disable=not pbar):
         if np.all(b[idx : idx + a.size] == a):
             ok.append(idx)
     return ok
