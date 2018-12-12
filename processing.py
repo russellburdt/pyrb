@@ -109,9 +109,10 @@ def find_numpy_array_in_other_numpy_array(a, b, pbar=False):
     from tqdm import tqdm
     ok = []
     for idx in tqdm(range(b.size - a.size + 1), desc='scanning array', disable=not pbar):
+        # if np.allclose(a, b[idx : idx + a.size], atol=atol, rtol=rtol):
         if np.all(b[idx : idx + a.size] == a):
             ok.append(idx)
-    return ok
+    return np.array(ok)
 
 def is_datetime_week_number_begin(dt):
     """
