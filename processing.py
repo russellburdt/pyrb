@@ -94,26 +94,6 @@ def arange(start, stop, step):
     time = np.arange(start, stop, step.total_seconds())
     return np.array([tref + timedelta(seconds=x) for x in time])
 
-def find_numpy_array_in_other_numpy_array(a, b, pbar=False):
-    """
-    find indices in b where the complete array a is found in consecutive elements
-
-    e.g.
-    a = np.array([1, 1])
-    b = np.array([2, 3, 3, 1, 1, 1, 8, 3, 1, 6, 0, 1, 1, 3, 4])
-
-    find_numpy_array_in_other_numpy_array(a, b) returns
-    [3, 4, 11]
-    """
-    import numpy as np
-    from tqdm import tqdm
-    ok = []
-    for idx in tqdm(range(b.size - a.size + 1), desc='scanning array', disable=not pbar):
-        # if np.allclose(a, b[idx : idx + a.size], atol=atol, rtol=rtol):
-        if np.all(b[idx : idx + a.size] == a):
-            ok.append(idx)
-    return np.array(ok)
-
 def is_datetime_week_number_begin(dt):
     """
     determine if the datetime object dt represents the beginning of an isocalendar week number
