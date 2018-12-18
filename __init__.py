@@ -20,7 +20,6 @@ update_figs = mpl.update_figs
 
 # hooks to pyrb.processing
 from pyrb import processing
-find_numpy_array_in_other_numpy_array = processing.find_numpy_array_in_other_numpy_array
 arange = processing.arange
 is_datetime_week_number_begin = processing.is_datetime_week_number_begin
 is_datetime_week_number_end = processing.is_datetime_week_number_end
