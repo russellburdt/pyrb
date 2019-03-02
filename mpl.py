@@ -228,7 +228,7 @@ def save_pngs(save_dir, maximize=False, close=True):
     if close:
         plt.close('all')
 
-def open_figure(fig_title, rows=1, columns=1, handle_2d1d=False, **kwargs):
+def open_figure(fig_title, rows=1, columns=1, handle_2d1d=False, handle_1d0d=False, **kwargs):
     """
     wrapper around plt.subplots:
     -- opens a figure of fig_title, returns fig and axes objects
@@ -236,8 +236,10 @@ def open_figure(fig_title, rows=1, columns=1, handle_2d1d=False, **kwargs):
     -- **kwargs are passed to plt.subplots
     -- this method is useful when additional data needs to be added to existing axes, and only
         the figure name is available (i.e. the figure object is not directly available)
-    -- the 'handle_2d1d' (default False) kwarg always returns 1d arrays with an extra dimension, i.e. shape is (x, 1)
+    -- the 'handle_2d1d' (default False) kwarg, when True, will return 1d arrays with an extra dimension, i.e. shape is (x, 1)
         in doing so, the method can transition from 2d to 1d behavior without errors
+    -- the 'handle_1d0d' (default False) kwarg, when True, will return single axes objects in a 1d arrays, i.e. shape is (x, )
+        in doing so, the method can transition from 1d to 0d behavior without errors
     """
 
     import matplotlib.pyplot as plt
@@ -265,6 +267,11 @@ def open_figure(fig_title, rows=1, columns=1, handle_2d1d=False, **kwargs):
             ax = np.expand_dims(ax, axis=0)
         elif columns == 1:
             ax = np.expand_dims(ax, axis=1)
+
+    # store ax in a 1d numpy array if requested
+    if handle_1d0d and isinstance(ax, plt.Axes):
+        ax = np.array([ax])
+        assert ax.ndim == 1
 
     # return figure and axes objects
     return fig, ax
