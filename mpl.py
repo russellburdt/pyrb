@@ -228,7 +228,7 @@ def save_pngs(save_dir, maximize=False, close=True):
     if close:
         plt.close('all')
 
-def open_figure(fig_title, rows=1, columns=1, handle_2d1d=False, handle_1d0d=False, **kwargs):
+def open_figure(fig_title='', rows=1, columns=1, handle_2d1d=False, handle_1d0d=False, **kwargs):
     """
     wrapper around plt.subplots:
     -- opens a figure of fig_title, returns fig and axes objects
