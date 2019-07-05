@@ -623,7 +623,7 @@ def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
     elif isinstance(takeaways, list) and len(takeaways) == len(pngs):
         pass
     else:
-        takeaways = ['Takeaway Message' for _ in range(len(pngs))]
+        takeaways = [None for _ in range(len(pngs))]
 
     # add an image slide for each png file
     for png, takeaway in zip(pngs, takeaways):
@@ -645,8 +645,11 @@ def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
         png_slide.shapes.add_picture(png, left=left, top=top, width=png_width_actual)
 
         # add the takeaway message
-        png_slide.placeholders[13].text = takeaway
-        #set_trace()
+        if takeaway is None:
+            tmp = png_slide.placeholders[13].element
+            tmp.getparent().remove(tmp)
+        else:
+            png_slide.placeholders[13].text = takeaway
 
     # final save, print save location
     prs.save(fname)
