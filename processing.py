@@ -3,6 +3,20 @@
 short data processing utility methods
 """
 
+def convert_all_jpg_2_pdf(datadir):
+    """
+    convert all .jpg files in datadir to .pdf files with matching filenames
+    """
+
+    import img2pdf
+    import os
+    from glob import glob
+
+    jpgs = glob(os.path.join(datadir, '*.jpg'))
+    for jpg in jpgs:
+        fn = jpg[:-4] + '.pdf'
+        with open(fn, 'wb') as fid:
+            fid.write(img2pdf.convert(jpg))
 
 def create_filename(fn):
     """
