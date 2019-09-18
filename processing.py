@@ -270,10 +270,10 @@ def movingstd(x, k):
     from numpy import array
 
     if x.ndim == 1:
-        return array(DataFrame(x).rolling(window=k, center=False).std()).squeeze()
+        return array(DataFrame(x).rolling(window=k, center=False,min_periods=1).std()).squeeze()
 
     elif x.ndim == 2:
-        return array(DataFrame(x).rolling(window=k, center=False).std())
+        return array(DataFrame(x).rolling(window=k, center=False,min_periods=1).std())
 
     else:
         raise ValueError('too many dims')
