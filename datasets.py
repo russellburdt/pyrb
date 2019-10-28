@@ -12,8 +12,8 @@ followed by the name of the dataset.  For example, 'supervised_ecoli' represents
 the ecoli dataset for a supervised machine learning problem.  Each type of supported
 dataset returns the following consistent information.
 
---- supervised datasets return a dictionary of
-    * text description - description of data from source location
+--- supervised and regression datasets return a dictionary of
+    * desc - description of data from source location
     * X0 - DataFrame of original feature data and column names
     * y0 - Series of original class data with name
     (X0 and y0 represent unclean, original data - categorical, numeric, missing, etc. all as in original source)
@@ -22,16 +22,14 @@ dataset returns the following consistent information.
     (see code to understand cleaning steps)
     * encoders - dict of any LabelEncoder objects used in data cleaning
 
---- regression datasets return ...
-
 --- unsupervised datasets return ...
 
 Current data sources are
     1) scikit-learn built-in datasets
     2) UCI Machine Learning Repository, https://archive.ics.uci.edu/ml/index.php
+    3) yellowbrick (districtdatalabs channel of conda)
 
-R Burdt, v0.01
-20 Sep 2018
+Author - Russell Burdt
 """
 
 import requests
@@ -40,7 +38,8 @@ import pandas as pd
 from itertools import chain
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder
-from sklearn.datasets import load_wine, load_digits, load_iris
+from sklearn import datasets
+from yellowbrick import datasets as ydatasets
 from ipdb import set_trace
 
 
@@ -50,10 +49,10 @@ def supervised_blank():
 
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = ''
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'').text
 
     # read data from url; parse to X, y numpy arrays
@@ -94,10 +93,10 @@ def supervised_a():
 
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = ''
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'').text
 
     # read data from url; parse to X, y numpy arrays
@@ -132,16 +131,120 @@ def supervised_a():
 
     return out
 
+def regression_boston():
+    """
+    retrieve information from scikit-learn built-in dataset
+    sklearn.datasets.load_boston
+    """
+
+    # load sklearn dataset
+    data = datasets.load_boston()
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'BOSTON'
+    out['desc'] = data.DESCR
+
+    # load training and class data into DataFrames
+    out['X0'] = pd.DataFrame(data=data.data, columns=data.feature_names)
+    out['y0'] = pd.Series(data=data.target, name='home price')
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
+
+    return out
+
+def regression_california():
+    """
+    retrieve information from scikit-learn built-in dataset
+    sklearn.datasets.california_housing
+    """
+
+    # load sklearn dataset
+    data = datasets.california_housing.fetch_california_housing()
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'CALIFORNIA'
+    out['desc'] = data.DESCR
+
+    # load training and class data into DataFrames
+    out['X0'] = pd.DataFrame(data=data.data, columns=data.feature_names)
+    out['y0'] = pd.Series(data=data.target, name='home price')
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
+
+    return out
+
+def regression_diabetes():
+    """
+    retrieve information from scikit-learn built-in dataset
+    sklearn.datasets.load_diabetes
+    """
+
+    # load sklearn dataset
+    data = datasets.load_diabetes()
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'DIABETES'
+    out['desc'] = data.DESCR
+
+    # load training and class data into DataFrames
+    out['X0'] = pd.DataFrame(data=data.data, columns=data.feature_names)
+    out['y0'] = pd.Series(data=data.target, name='One Year Disease Progression')
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
+
+    return out
+
+def regression_concrete():
+    """
+    retrieve information from yellowbrick built in dataset
+    yellowbrick.datasets.load_concrete
+    """
+
+    # load yellowbrick dataset
+    data = ydatasets.load_concrete()
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'CONCRETE'
+    out['desc'] = ydatasets.load_concrete.__doc__
+
+    # load training and class data into DataFrames
+    out['X0'] = data[0]
+    out['y0'] = data[1]
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
+
+    return out
+
 def supervised_banknote():
     """
     retrieve information from UCI Machine Learning Repository
     https://archive.ics.uci.edu/ml/datasets/banknote+authentication
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'BANKNOTE'
-    out['text description'] = \
+    out['desc'] = \
         'Data were extracted from images that were taken from genuine and forged banknote-like specimens. For digitization, an industrial camera usually used for print inspection was used. The final images have 400x 400 pixels. Due to the object lens and distance to the investigated object gray-scale pictures with a resolution of about 660 dpi were gained. Wavelet Transform tool were used to extract features from images.'
 
     # read data from url; parse to X, y numpy arrays
@@ -173,10 +276,10 @@ def supervised_adult():
     https://archive.ics.uci.edu/ml/datasets/Adult
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'ADULT'
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.names').text
 
     # read data from url; parse to X, y numpy arrays
@@ -226,10 +329,10 @@ def supervised_skin_segmentation():
     https://archive.ics.uci.edu/ml/datasets/Skin+Segmentation
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'SKIN SEGMENTATION'
-    out['text description'] = 'This dataset is of the dimension 245057 * 4 where first three columns are B,G,R (x1,x2, and x3 features) values and fourth column is of the class labels (decision variable y).'
+    out['desc'] = 'This dataset is of the dimension 245057 * 4 where first three columns are B,G,R (x1,x2, and x3 features) values and fourth column is of the class labels (decision variable y).'
 
     # read data from url; parse to X, y numpy arrays
     fn = r'https://archive.ics.uci.edu/ml/machine-learning-databases/00229/Skin_NonSkin.txt'
@@ -260,10 +363,10 @@ def supervised_yeast():
     https://archive.ics.uci.edu/ml/datasets/Yeast
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'YEAST'
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/yeast/yeast.names').text
 
     # read data from url; parse to X, y numpy arrays
@@ -305,10 +408,10 @@ def supervised_wireless_localization():
     https://archive.ics.uci.edu/ml/datasets/Wireless+Indoor+Localization
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'WIRELESS LOCALIZATION'
-    out['text description'] = 'Each attribute is wifi signal strength observed on smartphone'
+    out['desc'] = 'Each attribute is wifi signal strength observed on smartphone'
 
     # read data from url; parse to X, y numpy arrays
     data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/00422/wifi_localization.txt').text
@@ -338,10 +441,10 @@ def supervised_ecoli():
     https://archive.ics.uci.edu/ml/datasets/Ecoli
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'ECOLI'
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/ecoli/ecoli.names').text
 
     # read data from url; parse to X, y numpy arrays
@@ -382,10 +485,10 @@ def supervised_mammographic_mass():
     https://archive.ics.uci.edu/ml/datasets/Mammographic+Mass
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'MAMMOGRAPHIC MASS'
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/mammographic-masses/mammographic_masses.names').text
 
     # read data from url; parse to X, y numpy arrays
@@ -422,10 +525,10 @@ def supervised_ionosphere():
     https://archive.ics.uci.edu/ml/datasets/Ionosphere
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'IONOSPHERE'
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/ionosphere/ionosphere.names').text
 
     # read data from url; parse to X, y numpy arrays
@@ -463,10 +566,10 @@ def supervised_car_evaluation():
     https://archive.ics.uci.edu/ml/datasets/Car+Evaluation
     """
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'CAR EVALUATION'
-    out['text description'] = \
+    out['desc'] = \
         requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.names').text
 
     # read data from url; parse to X, y numpy arrays
@@ -511,12 +614,12 @@ def supervised_digits():
     """
 
     # load sklearn dataset
-    data = load_digits()
+    data = datasets.load_digits()
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'DIGITS'
-    out['text description'] = data.DESCR
+    out['desc'] = data.DESCR
 
     # load training and class data into DataFrames
     out['X0'] = pd.DataFrame(data=data.data, columns=['pixel {}'.format(x) for x in range(64)])
@@ -537,12 +640,12 @@ def supervised_iris():
     """
 
     # load sklearn dataset
-    data = load_iris()
+    data = datasets.load_iris()
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'IRIS'
-    out['text description'] = data.DESCR
+    out['desc'] = data.DESCR
 
     # load training and class data into DataFrames
     out['X0'] = pd.DataFrame(data=data.data, columns=data.feature_names)
@@ -563,12 +666,12 @@ def supervised_wine():
     """
 
     # load sklearn dataset
-    data = load_wine()
+    data = datasets.load_wine()
 
-    # initialize an output dictionary, assign a text description to the dataset
+    # initialize an output dictionary, assign a desc to the dataset
     out = {}
     out['name'] = 'WINE'
-    out['text description'] = data.DESCR
+    out['desc'] = data.DESCR
 
     # load training and class data into DataFrames
     out['X0'] = pd.DataFrame(data=data.data, columns=data.feature_names)
