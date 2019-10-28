@@ -6,6 +6,7 @@ short data processing utility methods
 def get_most_likely_distribution_membership(x, d1, d2):
     """
     determine if a number x is more likely to belong to a distribution d1 or a distribution d2
+    - work in progress
     """
     import numpy as np
     from numba import jit
