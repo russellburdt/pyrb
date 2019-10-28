@@ -3,6 +3,31 @@
 short data processing utility methods
 """
 
+def get_most_likely_distribution_membership(x, d1, d2):
+    """
+    determine if a number x is more likely to belong to a distribution d1 or a distribution d2
+    """
+    import numpy as np
+    from numba import jit
+
+    # returns by how many standard deviations of ``dist`` is ``xi`` from the mean of ``dist``
+    @jit(nopython=True)
+    def distance(xi, dist):
+        if np.unique(dist).size == 1:
+            return np.inf
+        return np.abs(np.mean(dist) - xi) / np.std(dist)
+
+    # compare distance of x from d1 and d2
+    dist1 = distance(x, d1)
+    dist2 = distance(x, d2)
+    assert dist1 != dist2
+
+    # return 1 or 2 representing the closer distribution
+    if dist1 < dist2:
+        return 1
+    else:
+        return 2
+
 def convert_all_jpg_2_pdf(datadir):
     """
     convert all .jpg files in datadir to .pdf files with matching filenames
