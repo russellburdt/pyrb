@@ -35,6 +35,8 @@ Author - Russell Burdt
 import requests
 import numpy as np
 import pandas as pd
+from io import StringIO, BytesIO
+from zipfile import ZipFile
 from itertools import chain
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder
@@ -232,6 +234,161 @@ def regression_concrete():
     assert pd.isnull(out['y0']).sum() == 0
     out['X'] = out['X0'].copy()
     out['y'] = out['y0'].copy()
+
+    return out
+
+def regression_demand():
+    """
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/Daily+Demand+Forecasting+Orders
+    """
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'DEMAND'
+    out['desc'] = """
+        Data Set Information:
+        The database was collected during 60 days, this is a real database of a Brazilian company of large logistics. Twelve predictive attributes and a target that is the total of orders for daily. treatment
+
+        Attribute Information:
+        The dataset was collected during 60 days, this is a real database of a brazilian logistics company. The dataset has twelve predictive attributes and a target that is the total of orders for daily treatment.
+        The database was used in academic research at the Universidade Nove de Julho.
+        .arff header for Weka:
+        @relation Daily_Demand_Forecasting_Orders
+        @attribute Week_of_the_month {1.0, 2.0, 3.0, 4.0, 5.0}
+        @attribute Day_of_the_week_(Monday_to_Friday) {2.0, 3.0, 4.0, 5.0, 6.0}
+        @attribute Non_urgent_order integer
+        @attribute Urgent_order integer
+        @attribute Order_type_A integer
+        @attribute Order_type_B integer
+        @attribute Order_type_C integer
+        @attribute Fiscal_sector_orders integer
+        @attribute Orders_from_the_traffic_controller_sector integer
+        @attribute Banking_orders_(1) integer
+        @attribute Banking_orders_(2) integer
+        @attribute Banking_orders_(3) integer
+        @attribute Target_(Total_orders) integer
+        @data
+        """
+
+    # read data from url; parse to X, y numpy arrays
+    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/00409/Daily_Demand_Forecasting_Orders.csv').text
+    data = [x.strip() for x in data.split('\n')]
+    hdr = data[0].split(';')
+    data = data[1:-1]
+    assert len(data) == 60
+    data = np.array([np.array([float(xi) for xi in x.split(';')]) for x in data])
+    assert data.shape[0] == 60
+    assert data.shape[1] == len(hdr)
+    X = data[:, :-1]
+    y = data[:, -1]
+
+    # original data, including all original numeric and categorical values
+    out['X0'] = pd.DataFrame(data=X, columns=hdr[:-1])
+    out['y0'] = pd.Series(data=y, name=hdr[-1])
+
+    # create clean X, y data
+    cdict = {
+        'WoM': 'Week of the month (first week, second, third, fourth or fifth week',
+        'DoW': 'Day of the week (Monday to Friday)',
+        'NUO': 'Non-urgent order',
+        'UO': 'Urgent order',
+        'OTA': 'Order type A',
+        'OTB': 'Order type B',
+        'OTC': 'Order type C',
+        'FSO': 'Fiscal sector orders',
+        'OTCS': 'Orders from the traffic controller sector',
+        'BO1': 'Banking orders (1)',
+        'BO2': 'Banking orders (2)',
+        'BO3': 'Banking orders (3)'}
+    out['X'] = out['X0'].copy().rename(columns={b: a for a, b in cdict.items()})
+    out['y'] = out['y0'].copy().rename('Orders')
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
+
+    return out
+
+def regression_traffic():
+    """
+    retrieve information from UCI Machine Learning Repository
+    https://archive.ics.uci.edu/ml/datasets/Behavior+of+the+urban+traffic+of+the+city+of+Sao+Paulo+in+Brazil
+    """
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'TRAFFIC'
+    out['desc'] = """
+        Data Set Information:
+        The database was created with records of behavior of the urban traffic of the city of Sao Paulo in Brazil from December 14, 2009 to December 18, 2009 (From Monday to Friday). Registered from 7:00 to 20:00 every 30 minutes. The data set Behavior of the urban traffic of the city of Sao Paulo in Brazil was used in academic research at the Universidade Nove de Julho - Postgraduate Program in Informatics and Knowledge Management.
+
+        Attribute Information:
+        1. Hour
+        2. Immobilized bus
+        3. Broken Truck
+        4. Vehicle excess
+        5. Accident victim
+        6. Running over
+        7. Fire Vehicles
+        8. Occurrence involving freight
+        9. Incident involving dangerous freight
+        10. Lack of electricity
+        11. Fire
+        12. Point of flooding
+        13. Manifestations
+        14. Defect in the network of trolleybuses
+        15. Tree on the road
+        16. Semaphore off
+        17. Intermittent Semaphore
+        18. Slowness in traffic (%) (Target)
+        """
+
+    # read data from url; parse to X, y numpy arrays
+    data = requests.get(r'https://archive.ics.uci.edu/ml/machine-learning-databases/00483/Behavior%20of%20the%20urban%20traffic%20of%20the%20city%20of%20Sao%20Paulo%20in%20Brazil.zip')
+    data = ZipFile(BytesIO(data.content))
+    csv = [x for x in data.namelist() if '.csv' in x]
+    assert len(csv) == 1
+    with data.open(csv[0]) as fid:
+        data = fid.readlines()
+    data = [x.decode().strip() for x in data]
+    hdr = data[0]
+    hdr = hdr.split(';')
+    data = data[1:]
+    assert len(data) == 135
+    data = [x.split(';') for x in data]
+    data = [x[:-1] + ['.'.join(x[-1].split(','))] for x in data]    # floats use ',' in Brazil instead of '.'
+    data = np.array([np.array([float(xi) for xi in x]) for x in data])
+    assert data.shape[0] == 135
+    assert data.shape[1] == len(hdr)
+    X = data[:, :-1]
+    y = data[:, -1]
+
+    # original data, including all original numeric and categorical values
+    out['X0'] = pd.DataFrame(data=X, columns=hdr[:-1])
+    out['y0'] = pd.Series(data=y, name=hdr[-1])
+
+    # create clean X, y data
+    cdict = {
+        'HR': 'Hour (Coded)',
+        'IB': 'Immobilized bus',
+        'BT': 'Broken Truck',
+        'VE': 'Vehicle excess',
+        'AV': 'Accident victim',
+        'RO': 'Running over',
+        'FV': 'Fire vehicles',
+        'OIF': 'Occurrence involving freight',
+        'IIDF': 'Incident involving dangerous freight',
+        'LOE': 'Lack of electricity',
+        'FIRE': 'Fire',
+        'POF': 'Point of flooding',
+        'MANS': 'Manifestations',
+        'DNT': 'Defect in the network of trolleybuses',
+        'TOR': 'Tree on the road',
+        'SO': 'Semaphore off',
+        'IS': 'Intermittent Semaphore'}
+    out['X'] = out['X0'].copy().rename(columns={b: a for a, b in cdict.items()})
+    out['y'] = out['y0'].copy().rename('Orders')
+    assert pd.isnull(out['X'].values).sum() == 0
+    assert pd.isnull(out['y']).sum() == 0
 
     return out
 
