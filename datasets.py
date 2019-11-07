@@ -45,6 +45,45 @@ from yellowbrick import datasets as ydatasets
 from ipdb import set_trace
 
 
+def regression_random_sum(features=10, instances=200, target_percentage_min=0.8, target_percentage_max=1.2):
+    """
+    return artificial X, y data for regression with shape set by keyword arguments
+    - each row of X is random numbers that exactly sum to the equivalent row of y
+    """
+
+    # create artifical X, y data for regression
+    y = np.random.rand(instances)
+    X = np.full((instances, features), np.nan)
+    for idx in range(instances):
+        # create data for features that randomly sums to class data
+        frac = target_percentage_min + np.random.rand() * (target_percentage_max - target_percentage_min)
+        total = frac * y[idx]
+        data = []
+        for _ in range(features):
+            data.append(np.random.rand() * total)
+            total -= data[-1]
+        data[-1] += total
+        data = np.array(data)
+        # data = np.random.rand(features)
+        np.random.shuffle(data)
+        assert np.isclose(sum(data), frac * y[idx])
+        X[idx, :] = data
+
+    # convert to pandas objects
+    X = pd.DataFrame(data=X, columns=['f{}'.format(x) for x in range(features)])
+    y = pd.Series(data=y, name='class data')
+
+    # convert to expected output structure
+    out = {}
+    out['name'] = 'RANDOM SUM'
+    out['desc'] = 'each row of X sums randomly to each row of y'
+    out['X0'] = X.copy()
+    out['y0'] = y.copy()
+    out['X'] = X.copy()
+    out['y'] = y.copy()
+
+    return out
+
 def regression_boston():
     """
     retrieve information from scikit-learn built-in dataset
