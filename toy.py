@@ -7,14 +7,22 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
+from scipy.stats import pearsonr
 from sklearn.model_selection import train_test_split, KFold, learning_curve
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression as MLM
+# from sklearn.linear_model import Ridge as MLM
+# from sklearn.svm import LinearSVR as MLM
+# from sklearn.linear_model import ElasticNet as MLM
+# from sklearn.linear_model import Lasso as MLM
 from sklearn.metrics import r2_score
 from pyrb import datasets
 from pyrb import largefonts, save_pngs, format_axes, open_figure
+from pyrb import get_bounds_of_data_within_interval
 from ipdb import set_trace
 plt.style.use('bmh')
 size = 14
+mlm = {}
 
 
 # load regression datasets
@@ -24,6 +32,7 @@ rdi = datasets.regression_diabetes()
 rco = datasets.regression_concrete()
 rde = datasets.regression_demand()
 rtr = datasets.regression_traffic()
+rad = datasets.regression_advertising()
 rrs = datasets.regression_random_sum(features=10, instances=600)
 with open(r'c:\Users\rburdt\Desktop\data.p', 'rb') as fid:
     rma = pickle.load(fid)
@@ -31,72 +40,24 @@ with open(r'c:\Users\rburdt\Desktop\data.p', 'rb') as fid:
 # test that residuals of regression follow a normal distribution
 for ds in [rma]:
 
-    # load dataset name and clean data
+    # load data
     name = ds['name']
     X = ds['X'].values
     y = ds['y'].values
     assert X.shape[0] == y.shape[0]
 
-    # create train and test data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
-
-    # instantiate, run, and score a regression model
-    model = LinearRegression()
-    model.fit(X_train, y_train)
-    y_train_pred = model.predict(X_train)
-    res_train = y_train_pred - y_train
-    r2_train = r2_score(y_true=y_train, y_pred=y_train_pred)
-    y_test_pred = model.predict(X_test)
-    res_test = y_test_pred - y_test
-    r2_test = r2_score(y_true=y_test, y_pred=y_test_pred)
-
-    # create a residuals chart
-    if True:
-        title = 'Residuals Chart, {} dataset'.format(ds['name'])
-        fig = plt.figure(figsize=(12, 6))
-        fig.canvas.set_window_title(title)
-        ax1 = plt.subplot2grid((1, 4), (0, 0), rowspan=1, colspan=3, fig=fig)
-        ax2 = plt.subplot2grid((1, 4), (0, 3), rowspan=1, colspan=1, fig=fig, sharey=ax1)
-
-        # plot residuals
-        ax1.plot(y_train_pred, res_train, 'o', label='Train $r^2$ = {:.3f}'.format(r2_train))
-        ax1.plot(y_test_pred, res_test, 'o', label='Test $r^2$ = {:.3f}'.format(r2_test))
-
-        # plot distribution of residuals
-        bins = np.linspace(min(res_train.min(), res_test.min()), max(res_train.max(), res_test.max()), 50)
-        htrain = plt.hist(x=res_train, bins=bins, orientation='horizontal', alpha=0.8)
-        assert htrain[0].sum() == res_train.size
-        htest = plt.hist(x=res_test, bins=bins, orientation='horizontal', alpha=0.8)
-        assert htest[0].sum() == res_test.size
-
-        # clean up
-        ax1.legend(loc='upper left', numpoints=3)
-        format_axes('Predicted Value', 'Residual Value', 'Residuals Chart', ax1)
-        largefonts(size)
+    # create a target correlation chart - does not use MLM
+    if False:
+        title = 'Target Correlation Chart, {} dataset'.format(ds['name'])
+        fig, ax = open_figure(title, 1, ds['X'].shape[1], sharey=True, figsize=(16, 4))
+        for idx, col in enumerate(ds['X'].iteritems()):
+            ax[idx].plot(col[1].values, ds['y'].values, 'o')
+            format_axes(col[0], '', 'corrcoef - {:.2f}'.format(pearsonr(col[1].values, ds['y'].values)[0]), ax[idx])
+        largefonts(2)
         fig.tight_layout()
 
-    # create a prediction error chart
-    if True:
-        title = 'Prediction Error Chart, {} dataset'.format(ds['name'])
-        fig, ax = open_figure(title, figsize=(12, 6))
-
-        # plot prediction error
-        train = ax.plot(y_train, y_train_pred, 'o', label='Train $r^2$ = {:.3f}'.format(r2_train))[0]
-        test = ax.plot(y_test, y_test_pred, 'o', label='Test $r^2$ = {:.3f}'.format(r2_test))[0]
-        x = ax.get_xlim()
-        ax.plot(x, np.polyval(np.polyfit(y_train, y_train_pred, deg=1), x), '-', lw=3, label='Train best fit', color=train.get_color())
-        ax.plot(x, np.polyval(np.polyfit(y_test, y_test_pred, deg=1), x), '-', lw=3, label='Test best fit', color=test.get_color())
-        ax.plot(x, x, '--', lw=3, label='identity', color='black')
-
-        # clean up
-        ax.set_xlim(x)
-        ax.legend(loc='upper left', numpoints=3)
-        format_axes('Actual target data', 'Predicted target data', 'Prediction Error Chart', ax)
-        largefonts(size)
-        fig.tight_layout()
-
-    # create a feature correlation chart
-    if True:
+    # create a feature correlation chart - does not use MLM
+    if False:
         df = ds['X'].copy()
         df[ds['y'].name] = ds['y'].values
         corr = np.flipud(df.corr().values)
@@ -128,11 +89,78 @@ for ds in [rma]:
         largefonts(size)
         fig.tight_layout()
 
+    # create a residuals chart - uses many trained MLMs
+    if False:
+
+        # set up residual chart
+        N = 100
+        test_size = 0.4
+        title = 'Residuals Chart, {} dataset'.format(ds['name'])
+        fig = plt.figure(figsize=(12, 6))
+        fig.canvas.set_window_title(title)
+        ax1 = plt.subplot2grid((2, 4), (0, 0), rowspan=1, colspan=3, fig=fig)
+        ax2 = plt.subplot2grid((2, 4), (0, 3), rowspan=1, colspan=1, fig=fig, sharey=ax1)
+        ax3 = plt.subplot2grid((2, 4), (1, 0), rowspan=1, colspan=4, fig=fig)
+
+        for idx in range(N):
+
+            # train and score MLM
+            model = MLM(**mlm)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+            model.fit(X_train, y_train)
+            y_train_pred = model.predict(X_train)
+            y_test_pred = model.predict(X_test)
+            r2_train = r2_score(y_true=y_train, y_pred=y_train_pred)
+            r2_test = r2_score(y_true=y_test, y_pred=y_test_pred)
+            res_train = y_train_pred - y_train
+            res_test = y_test_pred - y_test
+
+            # plot detailed residuals and distributions on first iteration only
+            if idx == 0:
+                ax1.plot(y_train_pred, res_train, 'o', label='Train $r^2$ = {:.3f}'.format(r2_train))
+                p = ax1.plot(y_test_pred, res_test, 'o', label='Test $r^2$ = {:.3f}'.format(r2_test))[0]
+                ax1.legend(loc='upper left', numpoints=3)
+                format_axes('Predicted Value', 'Residual Value', 'Train and Test Residuals', ax1)
+
+                bins = np.linspace(min(res_train.min(), res_test.min()), max(res_train.max(), res_test.max()), 50)
+                htrain = ax2.hist(x=res_train, bins=bins, orientation='horizontal', alpha=0.8)
+                assert htrain[0].sum() == res_train.size
+                htest = ax2.hist(x=res_test, bins=bins, orientation='horizontal', alpha=0.8)
+                assert htest[0].sum() == res_test.size
+
+            # plot test residuals on every iteration
+            format_axes('Model iteration', 'Residual Value', 'Test Residual Percentiles')
+
+        # clean up
+        largefonts(size)
+        fig.tight_layout()
+
+    # create a prediction error chart - uses 1 trained MLM
+    if False:
+        title = 'Prediction Error Chart, {} dataset'.format(ds['name'])
+        fig, ax = open_figure(title, figsize=(12, 6))
+
+        # plot prediction error
+        train = ax.plot(y_train, y_train_pred, 'o', label='Train $r^2$ = {:.3f}'.format(r2_train))[0]
+        test = ax.plot(y_test, y_test_pred, 'o', label='Test $r^2$ = {:.3f}'.format(r2_test))[0]
+        x = ax.get_xlim()
+        ax.plot(x, np.polyval(np.polyfit(y_train, y_train_pred, deg=1), x), '-', lw=3, label='Train best fit', color=train.get_color())
+        ax.plot(x, np.polyval(np.polyfit(y_test, y_test_pred, deg=1), x), '-', lw=3, label='Test best fit', color=test.get_color())
+        ax.plot(x, x, '--', lw=3, label='identity', color='black')
+
+        # clean up
+        ax.set_xlim(x)
+        ax.legend(loc='upper left', numpoints=3)
+        format_axes('Actual target data', 'Predicted target data', 'Prediction Error Chart', ax)
+        largefonts(size)
+        fig.tight_layout()
+
     # create a learning curve chart
-    if True:
+    # (does not use previously trained regression model)
+    if False:
 
         # generate data for learning curve
-        model_lc = LinearRegression()
+        model = MLM(**mlm)
         sample_fracs = np.linspace(0.2, 1, 20)      # fractions of full dataset to use in learning curve
         n_splits = 3                                # number of cross-validation splits to use for each fraction
         r2_scores = {}                              # dictionary for r2 scores
@@ -152,9 +180,9 @@ for ds in [rma]:
             for train_index, test_index in kfold.split(Xs):
                 Xs_train, Xs_test = Xs[train_index], Xs[test_index]
                 ys_train, ys_test = ys[train_index], ys[test_index]
-                model_lc.fit(Xs_train, ys_train)
-                r2_scores[sample_frac]['train'].append(r2_score(y_true=ys_train, y_pred=model_lc.predict(Xs_train)))
-                r2_scores[sample_frac]['test'].append(r2_score(y_true=ys_test, y_pred=model_lc.predict(Xs_test)))
+                model.fit(Xs_train, ys_train)
+                r2_scores[sample_frac]['train'].append(r2_score(y_true=ys_train, y_pred=model.predict(Xs_train)))
+                r2_scores[sample_frac]['test'].append(r2_score(y_true=ys_test, y_pred=model.predict(Xs_test)))
 
         # extract leaning curve data as numpy arrays
         x = np.array(sorted(r2_scores.keys()))
@@ -172,19 +200,81 @@ for ds in [rma]:
         ax.plot(x, y_train_mean, '.-', color=train.get_facecolor()[0], ms=12, lw=3, label='train data mean')[0]
         ax.plot(x, y_test_mean, '.-', color=test.get_facecolor()[0], ms=12, lw=3, label='test data mean')[0]
         ax.legend(loc='upper left', bbox_to_anchor=(1, 1), numpoints=3)
+        ax.set_ylim(0, 1)
         format_axes('Fraction of original dataset', 'r2 score, %', '{}-fold cross-validation learning curve'.format(n_splits), ax)
         largefonts(size)
         fig.tight_layout()
         fig.subplots_adjust(right=0.8)
 
     # create a model coefficient chart
+    # (does not use previously trained regression model)
     if True:
 
-        ab = {a: b for a, b in zip(ds['X'].columns, model.coef_)}
-        ab['intercept'] = model.intercept_
-        ab = pd.Series(data=ab)
+        # extract model coefficients for repeated runs
+        N = 999                             # number of times to run the model and identify coefficient ranges
+        frac = 0.8                          # fraction of full dataset to use for training in each model
+        model = MLM(**mlm)
+        coefs = []
+        intercepts = []
+        for _ in range(N):
+            n_samples = int(X.shape[0] * frac)
+            idx_n_samples = np.random.choice(range(X.shape[0]), size=n_samples, replace=False)
+            Xs = X[idx_n_samples, :]
+            ys = y[idx_n_samples]
+            model.fit(Xs, ys)
+            coefs.append(model.coef_)
+            intercepts.append(model.intercept_)
+        coefs, intercepts = np.array(coefs).T, np.array(intercepts)
+        cols = np.array(ds['X'].columns)
+        assert cols.size == X.shape[1]
 
-        # title = 'Regression Model Coefficient Chart, {} dataset'.format(ds['name'])
-        # fig, ax = open_figure(title, figsize=(12, 6))
+        # calculate coef and intercept metrics
+        interval = 0.95
+        intercepts_interval = get_bounds_of_data_within_interval(intercepts, x=0.95)
+
+        set_trace()
+
+        idx = np.logical_and(intercepts >= intercepts_interval[0], intercepts <= intercepts_interval[1])
+        assert idx.sum() / idx.size >= 0.95
+        coefs_intervals = np.array([get_bounds_of_data_within_interval(x, x=0.95) for x in coefs])
+        for x, y in zip(coefs_intervals, coefs):
+            idx = np.logical_and(y >= x[0], y <= x[1])
+            assert idx.sum() / idx.size >= 0.95
+
+        # plot results
+        title = 'Regression Model Coefficient Chart, {} dataset'.format(ds['name'])
+        fig = plt.figure(title, figsize=(12, 6))
+        fig.canvas.set_window_title(title)
+        ax1 = plt.subplot2grid(shape=(5, 1), loc=(0, 0), rowspan=4, colspan=1)
+        ax2 = plt.subplot2grid(shape=(5, 1), loc=(4, 0), rowspan=1, colspan=1)
+
+        y = np.arange(cols.size)
+        p = ax1.plot(np.mean(coefs, axis=1), y, 'o', label='mean coefficient')[0]
+        for yi, yinterval in zip(y, coefs_intervals):
+            x = ax1.errorbar(sum(yinterval) / 2, yi, xerr=np.diff(yinterval) / 2, lw=2, capsize=6, elinewidth=2, markeredgewidth=1, color=p.get_color())
+            if yi == 0:
+                x.set_label('interval with 95% of coefficients')
+        ax1.legend(loc='upper left', bbox_to_anchor=(1, 1), numpoints=1)
+        ax1.set_yticks(y)
+        ax1.set_yticklabels(cols)
+        format_axes('', '', 'Regression coefficients for {} models trained with random {:.0f}% of instances'.format(N, frac * 100), ax1)
+
+        ax2.plot(np.mean(intercepts), 1, 'o', color=p.get_color())
+        ax2.errorbar(sum(intercepts_interval) / 2, 1, xerr=np.diff(intercepts_interval) / 2, lw=2, capsize=6, elinewidth=2, markeredgewidth=1, color=p.get_color())
+        ax2.set_ylim(0, 2)
+        ax2.set_yticks([1])
+        ax2.set_yticklabels(['intercept'])
+        format_axes('', '', '', ax2)
+
+        largefonts(size)
+        fig.tight_layout()
+
+    # statsmodel implementation on full dataset
+    if False:
+        endog = ds['y']
+        exog = pd.DataFrame(data=np.hstack((ds['X'].values, np.expand_dims(np.ones(ds['X'].shape[0]), axis=1))), columns=list(ds['X'].columns) + ['intercept'])
+        ols = sm.OLS(endog=endog, exog=exog)
+        model = ols.fit()
+        print(model.summary())
 
 plt.show()

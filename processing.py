@@ -3,6 +3,32 @@
 short data processing utility methods
 """
 
+def get_bounds_of_data_within_interval(data, x=0.95):
+    """
+    return bounds of an array 'data' where at least x percent of the data are contained
+    - bounds will be items from data for which the interval is inclusive
+
+    e.g. get_bounds_of_data_within_interval([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], x=0.50) -> (3, 7)
+         get_bounds_of_data_within_interval([1, 2, 3, 4, 5, 6, 7, 800, 900, 1000], x=0.50) -> (4, 800)
+         get_bounds_of_data_within_interval([-1, -2, -3, 4, 5, 6, 7, 8, 9, 10], x=0.50) -> (-1, 7)
+    """
+    data = np.array(data).flatten()
+    data = np.sort(data)
+    remove = int(data.size * (1 - x))
+    assert (data.size - remove) / data.size >= x
+    assert (data.size - remove - 1) / data.size < x
+    if remove % 2 == 0:     # remove same number of data points from each side of data
+        remove = int(remove / 2)
+        return data[remove], data[-remove - 1]
+    else:                   # decide whether to remove an additional data point from left or right side - maximize interval as the constraint
+        remove = int(remove / 2)
+        left_diff = np.diff(data[remove : remove + 2])
+        right_diff = np.diff(data[-remove - 2 : -remove])
+        if left_diff < right_diff:
+            return data[remove + 1], data[-remove - 1]
+        else:
+            return data[remove], data[-remove - 2]
+
 def get_most_likely_distribution_membership(x, d1, d2):
     """
     determine if a number x is more likely to belong to a distribution d1 or a distribution d2

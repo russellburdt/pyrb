@@ -28,6 +28,7 @@ Current data sources are
     1) scikit-learn built-in datasets
     2) UCI Machine Learning Repository, https://archive.ics.uci.edu/ml/index.php
     3) yellowbrick (districtdatalabs channel of conda)
+    4) misc URLs
 
 Author - Russell Burdt
 """
@@ -340,6 +341,36 @@ def regression_traffic():
     out['y'] = out['y0'].copy().rename('Orders')
     assert pd.isnull(out['X'].values).sum() == 0
     assert pd.isnull(out['y']).sum() == 0
+
+    return out
+
+def regression_advertising():
+    """
+    retrieve information from Regression Advertising dataset
+    http://faculty.marshall.usc.edu/gareth-james/ISL/Advertising.csv
+    """
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'ADVERTISING'
+    out['desc'] = """
+        regression dataset supporting this useful blog:
+        https://www.ritchieng.com/machine-learning-evaluate-linear-regression-model/
+        """
+
+    # read data from url; parse to X, y numpy arrays
+    data = pd.read_csv(r'http://faculty.marshall.usc.edu/gareth-james/ISL/Advertising.csv')
+    data = data[['TV', 'radio', 'newspaper', 'sales']]
+
+    # load raw training and class data
+    out['X0'] = data[['TV', 'radio', 'newspaper']]
+    out['y0'] = data['sales']
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
 
     return out
 
