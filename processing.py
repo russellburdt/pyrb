@@ -12,6 +12,8 @@ def get_bounds_of_data_within_interval(data, x=0.95):
          get_bounds_of_data_within_interval([1, 2, 3, 4, 5, 6, 7, 800, 900, 1000], x=0.50) -> (4, 800)
          get_bounds_of_data_within_interval([-1, -2, -3, 4, 5, 6, 7, 8, 9, 10], x=0.50) -> (-1, 7)
     """
+    import numpy as np
+
     data = np.array(data).flatten()
     data = np.sort(data)
     remove = int(data.size * (1 - x))
