@@ -22,8 +22,10 @@ from pyrb import get_bounds_of_data_within_interval
 from ipdb import set_trace
 plt.style.use('bmh')
 size = 14
-mlm = {}
 
+# model hyper-parameters and cross-validation parameters
+mlm = {}
+test_size = 0.4
 
 # load regression datasets
 rbo = datasets.regression_boston()
@@ -94,7 +96,6 @@ for ds in [rma]:
 
         # set up residual chart
         N = 100
-        test_size = 0.4
         title = 'Residuals Chart, {} dataset'.format(ds['name'])
         fig = plt.figure(figsize=(12, 6))
         fig.canvas.set_window_title(title)
@@ -110,17 +111,14 @@ for ds in [rma]:
             model.fit(X_train, y_train)
             y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
-            r2_train = r2_score(y_true=y_train, y_pred=y_train_pred)
-            r2_test = r2_score(y_true=y_test, y_pred=y_test_pred)
             res_train = y_train_pred - y_train
             res_test = y_test_pred - y_test
 
             # plot detailed residuals and distributions on first iteration only
             if idx == 0:
-                ax1.plot(y_train_pred, res_train, 'o', label='Train $r^2$ = {:.3f}'.format(r2_train))
-                p = ax1.plot(y_test_pred, res_test, 'o', label='Test $r^2$ = {:.3f}'.format(r2_test))[0]
+                ax1.plot(y_train_pred, res_train, 'o', label='Train $r^2$ = {:.3f}'.format(r2_score(y_true=y_train, y_pred=y_train_pred)))
+                p = ax1.plot(y_test_pred, res_test, 'o', label='Test $r^2$ = {:.3f}'.format(r2_score(y_true=y_test, y_pred=y_test_pred)))[0]
                 ax1.legend(loc='upper left', numpoints=3)
-                format_axes('Predicted Value', 'Residual Value', 'Train and Test Residuals', ax1)
 
                 bins = np.linspace(min(res_train.min(), res_test.min()), max(res_train.max(), res_test.max()), 50)
                 htrain = ax2.hist(x=res_train, bins=bins, orientation='horizontal', alpha=0.8)
@@ -129,20 +127,33 @@ for ds in [rma]:
                 assert htest[0].sum() == res_test.size
 
             # plot test residuals on every iteration
-            format_axes('Model iteration', 'Residual Value', 'Test Residual Percentiles')
+            interval = get_bounds_of_data_within_interval(res_test, x=0.95)
+            ax3.errorbar(idx, sum(interval) / 2, yerr=np.diff(interval) / 2, lw=2, capsize=6, elinewidth=2, markeredgewidth=1, color=p.get_color())
 
         # clean up
+        format_axes('Predicted Value', 'Residual Value', 'Train and test residuals for 1 model', ax1)
+        format_axes('bin count', '', 'distributions')
+        format_axes('Model iteration', 'Residual Value', 'Range with 95% of test residuals for {} models'.format(N), ax3)
         largefonts(size)
         fig.tight_layout()
 
     # create a prediction error chart - uses 1 trained MLM
     if False:
+
+        # train and score MLM
+        model = MLM(**mlm)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+        model.fit(X_train, y_train)
+        y_train_pred = model.predict(X_train)
+        y_test_pred = model.predict(X_test)
+
+        # set up chart
         title = 'Prediction Error Chart, {} dataset'.format(ds['name'])
         fig, ax = open_figure(title, figsize=(12, 6))
 
         # plot prediction error
-        train = ax.plot(y_train, y_train_pred, 'o', label='Train $r^2$ = {:.3f}'.format(r2_train))[0]
-        test = ax.plot(y_test, y_test_pred, 'o', label='Test $r^2$ = {:.3f}'.format(r2_test))[0]
+        train = ax.plot(y_train, y_train_pred, 'o', label='Train $r^2$ = {:.3f}'.format(r2_score(y_true=y_train, y_pred=y_train_pred)))[0]
+        test = ax.plot(y_test, y_test_pred, 'o', label='Test $r^2$ = {:.3f}'.format(r2_score(y_true=y_test, y_pred=y_test_pred)))[0]
         x = ax.get_xlim()
         ax.plot(x, np.polyval(np.polyfit(y_train, y_train_pred, deg=1), x), '-', lw=3, label='Train best fit', color=train.get_color())
         ax.plot(x, np.polyval(np.polyfit(y_test, y_test_pred, deg=1), x), '-', lw=3, label='Test best fit', color=test.get_color())
@@ -208,10 +219,10 @@ for ds in [rma]:
 
     # create a model coefficient chart
     # (does not use previously trained regression model)
-    if True:
+    if False:
 
         # extract model coefficients for repeated runs
-        N = 999                             # number of times to run the model and identify coefficient ranges
+        N = 1000                            # number of times to run the model and identify coefficient ranges
         frac = 0.8                          # fraction of full dataset to use for training in each model
         model = MLM(**mlm)
         coefs = []
@@ -231,15 +242,7 @@ for ds in [rma]:
         # calculate coef and intercept metrics
         interval = 0.95
         intercepts_interval = get_bounds_of_data_within_interval(intercepts, x=0.95)
-
-        set_trace()
-
-        idx = np.logical_and(intercepts >= intercepts_interval[0], intercepts <= intercepts_interval[1])
-        assert idx.sum() / idx.size >= 0.95
         coefs_intervals = np.array([get_bounds_of_data_within_interval(x, x=0.95) for x in coefs])
-        for x, y in zip(coefs_intervals, coefs):
-            idx = np.logical_and(y >= x[0], y <= x[1])
-            assert idx.sum() / idx.size >= 0.95
 
         # plot results
         title = 'Regression Model Coefficient Chart, {} dataset'.format(ds['name'])
@@ -257,7 +260,7 @@ for ds in [rma]:
         ax1.legend(loc='upper left', bbox_to_anchor=(1, 1), numpoints=1)
         ax1.set_yticks(y)
         ax1.set_yticklabels(cols)
-        format_axes('', '', 'Regression coefficients for {} models trained with random {:.0f}% of instances'.format(N, frac * 100), ax1)
+        format_axes('', '', 'Coefficient ranges for {} models, each trained with random {:.0f}% of instances'.format(N, frac * 100), ax1)
 
         ax2.plot(np.mean(intercepts), 1, 'o', color=p.get_color())
         ax2.errorbar(sum(intercepts_interval) / 2, 1, xerr=np.diff(intercepts_interval) / 2, lw=2, capsize=6, elinewidth=2, markeredgewidth=1, color=p.get_color())
