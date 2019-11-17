@@ -17,6 +17,12 @@ norm_pdf = lambda x: norm.pdf(x, loc=0, scale=1)
 norm_integral = lambda x: quad(norm_pdf, -x, x)[0]
 bound = fsolve(lambda x: norm_integral(x) - confidence, 0)
 
+# mean, sigma
+baseline = (1367, 171)
+n = 9
+wc = (1419, 248)
+dc = (1606, 158)
+
 
 
 
