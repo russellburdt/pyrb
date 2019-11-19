@@ -42,13 +42,7 @@ with open(r'c:\Users\rburdt\Desktop\data.p', 'rb') as fid:
 # test that residuals of regression follow a normal distribution
 for ds in [rma]:
 
-    # load data
-    name = ds['name']
-    X = ds['X'].values
-    y = ds['y'].values
-    assert X.shape[0] == y.shape[0]
-
-    # create a target correlation chart - does not use MLM
+    # create a target correlation chart - does not use any MLM
     if False:
         title = 'Target Correlation Chart, {} dataset'.format(ds['name'])
         fig, ax = open_figure(title, 1, ds['X'].shape[1], sharey=True, figsize=(16, 4))
@@ -58,8 +52,8 @@ for ds in [rma]:
         largefonts(2)
         fig.tight_layout()
 
-    # create a feature correlation chart - does not use MLM
-    if False:
+    # create a feature correlation chart - does not use any MLM
+    if True:
         df = ds['X'].copy()
         df[ds['y'].name] = ds['y'].values
         corr = np.flipud(df.corr().values)
@@ -92,7 +86,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a residuals chart - uses many trained MLMs
-    if False:
+    if True:
 
         # set up residual chart
         N = 100
@@ -107,7 +101,7 @@ for ds in [rma]:
 
             # train and score MLM
             model = MLM(**mlm)
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+            X_train, X_test, y_train, y_test = train_test_split(ds['X'].values, ds['y'].values, test_size=test_size)
             model.fit(X_train, y_train)
             y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
@@ -131,7 +125,7 @@ for ds in [rma]:
             ax3.errorbar(idx, sum(interval) / 2, yerr=np.diff(interval) / 2, lw=2, capsize=6, elinewidth=2, markeredgewidth=1, color=p.get_color())
 
         # clean up
-        format_axes('Predicted Value', 'Residual Value', 'Train and test residuals for 1 model', ax1)
+        format_axes('Predicted Value', 'Residual Value', 'Cross validation train ({:.0f}%) and test ({:.0f}%) residuals for 1 model'.format(100*(1-test_size), 100*test_size), ax1)
         format_axes('bin count', '', 'distributions')
         format_axes('Model iteration', 'Residual Value', 'Range with 95% of test residuals for {} models'.format(N), ax3)
         largefonts(size)
@@ -142,7 +136,7 @@ for ds in [rma]:
 
         # train and score MLM
         model = MLM(**mlm)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+        X_train, X_test, y_train, y_test = train_test_split(ds['X'].values, ds['y'].values, test_size=test_size)
         model.fit(X_train, y_train)
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
@@ -166,9 +160,8 @@ for ds in [rma]:
         largefonts(size)
         fig.tight_layout()
 
-    # create a learning curve chart
-    # (does not use previously trained regression model)
-    if False:
+    # create a learning curve chart - uses many trained MLMs
+    if True:
 
         # generate data for learning curve
         model = MLM(**mlm)
@@ -178,10 +171,10 @@ for ds in [rma]:
         for sample_frac in sample_fracs:
 
             # get Xs and ys and subsets of X and y defined by 'sample_frac' samples
-            n_samples = int(X.shape[0] * sample_frac)
-            idx_n_samples = np.random.choice(range(X.shape[0]), size=n_samples, replace=False)
-            Xs = X[idx_n_samples, :]
-            ys = y[idx_n_samples]
+            n_samples = int(ds['X'].shape[0] * sample_frac)
+            idx_n_samples = np.random.choice(range(ds['X'].shape[0]), size=n_samples, replace=False)
+            Xs = ds['X'].values[idx_n_samples, :]
+            ys = ds['y'].values[idx_n_samples]
             r2_scores[sample_frac] = {}
             r2_scores[sample_frac]['train'] = []
             r2_scores[sample_frac]['test'] = []
@@ -217,9 +210,8 @@ for ds in [rma]:
         fig.tight_layout()
         fig.subplots_adjust(right=0.8)
 
-    # create a model coefficient chart
-    # (does not use previously trained regression model)
-    if False:
+    # create a model coefficient chart - uses many trained MLMs
+    if True:
 
         # extract model coefficients for repeated runs
         N = 1000                            # number of times to run the model and identify coefficient ranges
@@ -228,16 +220,16 @@ for ds in [rma]:
         coefs = []
         intercepts = []
         for _ in range(N):
-            n_samples = int(X.shape[0] * frac)
-            idx_n_samples = np.random.choice(range(X.shape[0]), size=n_samples, replace=False)
-            Xs = X[idx_n_samples, :]
-            ys = y[idx_n_samples]
+            n_samples = int(ds['X'].shape[0] * frac)
+            idx_n_samples = np.random.choice(range(ds['X'].shape[0]), size=n_samples, replace=False)
+            Xs = ds['X'].values[idx_n_samples, :]
+            ys = ds['y'].values[idx_n_samples]
             model.fit(Xs, ys)
             coefs.append(model.coef_)
             intercepts.append(model.intercept_)
         coefs, intercepts = np.array(coefs).T, np.array(intercepts)
         cols = np.array(ds['X'].columns)
-        assert cols.size == X.shape[1]
+        assert cols.size == ds['X'].shape[1]
 
         # calculate coef and intercept metrics
         interval = 0.95
