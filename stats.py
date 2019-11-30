@@ -6,10 +6,10 @@ implementation of basic statistical tests
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
-from scipy.stats import norm
+from scipy.stats import norm, binom
 from scipy.optimize import fsolve
 from pyrb import open_figure, format_axes, largefonts
-
+plt.style.use('bmh')
 
 # find symmetric bounds of normal distribution with 'confidence' of finding a random variable
 confidence = 0.98
@@ -17,18 +17,18 @@ norm_pdf = lambda x: norm.pdf(x, loc=0, scale=1)
 norm_integral = lambda x: quad(norm_pdf, -x, x)[0]
 bound = fsolve(lambda x: norm_integral(x) - confidence, 0)
 
+# find probability of getting X heads in n flips of a fair coin
+X = 4900
+n = 10000
+print('prob of {} heads in {} flips of fair coin - {:.3f}'.format(X, n, binom(n=n, p=0.5).pmf(X)))
+print('prob of {} or more heads in {} flips of fair coin - {:.3f}'.format(X, n, binom(n=n, p=0.5).pmf(range(X, n + 1)).sum()))
+xbar = X / n
+z = (xbar - 0.50) / ((0.50 * (1 - 0.50)) / n)**0.5
+pvalue = (1 - norm_integral(z)) / 2
+print('prob of {} or more heads in {} flips of fair coin - {:.3f}'.format(X, n, pvalue))
+
+
 # mean, sigma
-baseline = (1367, 171)
-n = 9
-wc = (1419, 248)
-dc = (1606, 158)
-
-
-
-
-
-
-
 
 # import numpy as np
 # import matplotlib.pyplot as plt
