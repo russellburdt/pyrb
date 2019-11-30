@@ -24,6 +24,8 @@ dataset returns the following consistent information.
 
 --- unsupervised datasets return ...
 
+--- use 'size' (absolute units) and 'random_state' keyword arguments to return a fraction of the dataset
+
 Current data sources are
     1) scikit-learn built-in datasets
     2) UCI Machine Learning Repository, https://archive.ics.uci.edu/ml/index.php
@@ -409,7 +411,7 @@ def supervised_banknote():
 
     return out
 
-def supervised_adult():
+def supervised_adult(size=None, random_state=None):
     """
     retrieve information from UCI Machine Learning Repository
     https://archive.ics.uci.edu/ml/datasets/Adult
@@ -428,6 +430,11 @@ def supervised_adult():
     data = [[x.strip() for x in y] for y in data]
     assert np.unique([len(x) for x in data]) == 15
     data = np.array(data)
+    if size is not None:
+        if random_state is not None:
+            np.random.seed(random_state)
+        x = np.random.choice(range(data.shape[0]), size, replace=False)
+        data = data[x, :]
     X = data[:, :-1]
     y = data[:, -1]
 
@@ -763,6 +770,30 @@ def supervised_digits():
     # load training and class data into DataFrames
     out['X0'] = pd.DataFrame(data=data.data, columns=['pixel {}'.format(x) for x in range(64)])
     out['y0'] = pd.Series(data=data.target, name='digit in range 0-9')
+
+    # create clean X, y data - no data cleaning required in this case
+    assert pd.isnull(out['X0'].values).sum() == 0
+    assert pd.isnull(out['y0']).sum() == 0
+    out['X'] = out['X0'].copy()
+    out['y'] = out['y0'].copy()
+
+    return out
+
+def supervised_blobs(n_samples=1000, n_features=2, centers=2, center_box=(-10, 10), cluster_std=2):
+    """
+    retrieve information from scikit-learn built-in dataset generator
+    sklearn.datasets.make_blobs
+    """
+
+    # initialize an output dictionary, assign a desc to the dataset
+    out = {}
+    out['name'] = 'BLOBS'
+    out['desc'] = datasets.make_blobs.__doc__
+
+    # create blobs dataset
+    X, y = datasets.make_blobs(n_samples=n_samples, n_features=n_features, centers=centers, center_box=center_box, cluster_std=cluster_std)
+    out['X0'] = pd.DataFrame(data=X, columns=['x{}'.format(x) for x in range(1, n_features + 1)])
+    out['y0'] = pd.Series(data=y, name='centers')
 
     # create clean X, y data - no data cleaning required in this case
     assert pd.isnull(out['X0'].values).sum() == 0

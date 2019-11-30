@@ -1,6 +1,6 @@
 
 """
-multiple regression toy problem and visualizations
+multiple regression toy problems and visualizations
 """
 
 import pickle
