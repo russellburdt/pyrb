@@ -6,10 +6,12 @@ classification toy problems and visualizations
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
-from pyrb import open_figure, format_axes, largefonts
+from sklearn.preprocessing import StandardScaler, Normalizer
+from pyrb import open_figure, format_axes, largefonts, save_pngs
 from pyrb import datasets
 from ipdb import set_trace
 from tqdm import tqdm
@@ -17,7 +19,7 @@ from tqdm import tqdm
 # plotting
 plt.style.use('bmh')
 figsize = (12, 6)
-size = 12
+size = 14
 
 # load classification datasets
 cad = datasets.supervised_adult(size=3000, random_state=0)
@@ -25,13 +27,24 @@ css = datasets.supervised_skin_segmentation()
 cbn = datasets.supervised_banknote()
 cio = datasets.supervised_ionosphere()
 cbl = datasets.supervised_blobs()
+with open(r'c:\Users\rburdt\Desktop\XL\2019, ADAPT\ASML-XL-2017-2019\features.p', 'rb') as fid:
+    cfa = pickle.load(fid)
+    idx = cfa['X']['GL1-P-no fault found'] <= 50
+    cols = [x for x in cfa['X'].columns if 'GL1-P' not in x]
+    cols.remove('GL1-events in FSD')
+    cols.remove('GL1-F-no fault found')
+    for x in [x for x in cols if np.all(cfa['X'][x] == 0)]:
+        cols.remove(x)
+    cfa['X'] = cfa['X'].loc[idx, cols].copy()
+    # cfa['X'] = cfa['X'].loc[idx].copy()
+    cfa['y'] = cfa['y'][idx].copy()
 
 # model hyper-parameters
 MLM = SVC
-mlm = {'gamma': 'auto', 'C': 1.0, 'kernel': 'rbf'}
+mlm = {'gamma': 'auto', 'C': 0.6, 'kernel': 'linear'}
 
 # scan over datasets
-for ds in [cbl]:
+for ds in [cfa]:
 
     # create a learning curve chart - uses many trained MLMs
     if True:
@@ -41,28 +54,31 @@ for ds in [cbl]:
         X = ds['X'].values
         y = ds['y'].values
         assert X.shape[0] == y.shape[0]
+        sc = StandardScaler()
+        sc.fit(X)
+        Xs = sc.transform(X)
 
         # generate data for learning curve
         model = MLM(**mlm)
-        n_splits = 3                                # cross-val splits
+        n_splits = 4                                # cross-val splits
         sample_fracs = np.linspace(0.2, 1, 10)      # fractions of full dataset to use in learning curve
         scores = {}                                 # dictionary for model scores
         for sample_frac in tqdm(sample_fracs, desc='scanning dataset fractions'):
 
             # get Xs and ys and subsets of X and y defined by 'sample_frac' samples
-            n_samples = int(X.shape[0] * sample_frac)
-            idx_n_samples = np.random.choice(range(X.shape[0]), size=n_samples, replace=False)
-            Xs = X[idx_n_samples, :]
-            ys = y[idx_n_samples]
+            n_samples = int(Xs.shape[0] * sample_frac)
+            idx_n_samples = np.random.choice(range(Xs.shape[0]), size=n_samples, replace=False)
+            Xc = Xs[idx_n_samples, :]
+            yc = y[idx_n_samples]
             scores[sample_frac] = {}
             scores[sample_frac]['train'] = []
             scores[sample_frac]['test'] = []
 
             # initialize a KFold iterator and scan over folds
             kfold = KFold(n_splits=n_splits)
-            for train_index, test_index in kfold.split(Xs):
-                Xs_train, Xs_test = Xs[train_index], Xs[test_index]
-                ys_train, ys_test = ys[train_index], ys[test_index]
+            for train_index, test_index in tqdm(kfold.split(Xc), desc='scanning folds', total=n_splits, leave=False):
+                Xs_train, Xs_test = Xc[train_index], Xc[test_index]
+                ys_train, ys_test = yc[train_index], yc[test_index]
                 model.fit(Xs_train, ys_train)
                 scores[sample_frac]['train'].append(accuracy_score(y_true=ys_train, y_pred=model.predict(Xs_train)))
                 scores[sample_frac]['test'].append(accuracy_score(y_true=ys_test, y_pred=model.predict(Xs_test)))
@@ -89,9 +105,39 @@ for ds in [cbl]:
         fig.tight_layout()
         fig.subplots_adjust(right=0.8)
 
+    # create feature quartile plots and save in sdir
+    if False:
+        sdir = r'c:/Users/rburdt/Desktop/XL/tmp'
+        uy = sorted(pd.unique(ds['y']))
+        for col in ds['X'].columns:
+            fig, ax = open_figure('Raw data plot, dataset {}, column {}'.format(ds['name'], col), figsize=(8, 4))
+            xmin = np.inf
+            xmax = -np.inf
+            for idx, yi in enumerate(uy):
+                values = ds['X'].loc[ds['y'] == yi, col].values
+                p1 = ax.plot(values, np.tile(idx, values.size), 'o', ms=8, color='orange')[0]
+                a, b = values.mean(), values.std()
+                p2 = ax.plot([a - b, a + b], np.tile(idx, 2), '-', lw=2, color='darkblue')[0]
+                ax.plot(np.tile(a - b, 2), [idx - 0.02, idx + 0.02], '-', lw=2, color='darkblue')
+                ax.plot(np.tile(a + b, 2), [idx - 0.02, idx + 0.02], '-', lw=2, color='darkblue')
+                if idx == 0:
+                    p1.set_label('raw data for each class')
+                    p2.set_label(r'mean $\pm$ 1-sigma')
+                xmin = min(xmin, min(values.min(), a - b))
+                xmax = max(xmax, max(values.max(), a + b))
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(-0.2, idx + 0.2)
+            ax.set_yticks(range(idx + 1))
+            ax.set_yticklabels(uy)
+            ax.legend(loc='upper left', bbox_to_anchor=(1, 1), numpoints=3)
+            format_axes('{} data'.format(col), 'class label', '{} data for each class'.format(col), ax)
+            largefonts(size)
+            fig.tight_layout()
+            save_pngs(sdir)
+
     # plot linear SVC decision boundary for two input variables of binary classification problems
     # i.e. always uses SVC(kernel='linear') and y must only have two classes
-    if True:
+    if False:
 
         # define dimensions for chart
         dims = ['x1', 'x2']
