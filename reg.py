@@ -1,6 +1,6 @@
 
 """
-multiple regression toy problems and visualizations
+multiple regression toy problem and visualizations
 """
 
 import pickle
@@ -8,22 +8,23 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, normaltest, jarque_bera
 from sklearn.model_selection import train_test_split, KFold, learning_curve
 from sklearn.linear_model import LinearRegression as MLM
 # from sklearn.linear_model import Ridge as MLM
 # from sklearn.svm import LinearSVR as MLM
 # from sklearn.linear_model import ElasticNet as MLM
 # from sklearn.linear_model import Lasso as MLM
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from pyrb import datasets
 from pyrb import largefonts, save_pngs, format_axes, open_figure
 from pyrb import get_bounds_of_data_within_interval
 from ipdb import set_trace
-plt.style.use('bmh')
-size = 14
 
 # model hyper-parameters and cross-validation parameters
+plt.style.use('bmh')
+size = 14
+figsize = (14, 8)
 mlm = {}
 test_size = 0.4
 
@@ -53,7 +54,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a feature correlation chart - does not use any MLM
-    if True:
+    if False:
         df = ds['X'].copy()
         df[ds['y'].name] = ds['y'].values
         corr = np.flipud(df.corr().values)
@@ -62,7 +63,7 @@ for ds in [rma]:
         cols[-1] = cols[-1] + '\n(target)'
 
         title = 'Feature Correlation Chart, {} dataset'.format(ds['name'])
-        fig = plt.figure(figsize=(12, 6))
+        fig = plt.figure(figsize=figsize)
         fig.canvas.set_window_title(title)
         axm = plt.subplot2grid(shape=(1, 10), loc=(0, 0), rowspan=1, colspan=9)
         axb = plt.subplot2grid(shape=(1, 10), loc=(0, 9), rowspan=1, colspan=1)
@@ -91,7 +92,7 @@ for ds in [rma]:
         # set up residual chart
         N = 100
         title = 'Residuals Chart, {} dataset'.format(ds['name'])
-        fig = plt.figure(figsize=(12, 6))
+        fig = plt.figure(figsize=figsize)
         fig.canvas.set_window_title(title)
         ax1 = plt.subplot2grid((2, 4), (0, 0), rowspan=1, colspan=3, fig=fig)
         ax2 = plt.subplot2grid((2, 4), (0, 3), rowspan=1, colspan=1, fig=fig, sharey=ax1)
@@ -110,15 +111,16 @@ for ds in [rma]:
 
             # plot detailed residuals and distributions on first iteration only
             if idx == 0:
-                ax1.plot(y_train_pred, res_train, 'o', label='Train $r^2$ = {:.3f}'.format(r2_score(y_true=y_train, y_pred=y_train_pred)))
-                p = ax1.plot(y_test_pred, res_test, 'o', label='Test $r^2$ = {:.3f}'.format(r2_score(y_true=y_test, y_pred=y_test_pred)))[0]
-                ax1.legend(loc='upper left', numpoints=3)
-
+                train_label = 'Train $r^2$ = {:.3f}\np-value = {:.2g}'.format(r2_score(y_true=y_train, y_pred=y_train_pred), normaltest(res_train).pvalue)
+                test_label = 'Test $r^2$ = {:.3f}\np-value = {:.2g}'.format(r2_score(y_true=y_test, y_pred=y_test_pred), normaltest(res_test).pvalue)
+                ax1.plot(y_train_pred, res_train, 'o', label=train_label)
+                p = ax1.plot(y_test_pred, res_test, 'o', label=test_label)[0]
                 bins = np.linspace(min(res_train.min(), res_test.min()), max(res_train.max(), res_test.max()), 50)
-                htrain = ax2.hist(x=res_train, bins=bins, orientation='horizontal', alpha=0.8)
+                htrain = ax2.hist(x=res_train, bins=bins, orientation='horizontal', alpha=0.8, label=train_label)
                 assert htrain[0].sum() == res_train.size
-                htest = ax2.hist(x=res_test, bins=bins, orientation='horizontal', alpha=0.8)
+                htest = ax2.hist(x=res_test, bins=bins, orientation='horizontal', alpha=0.8, label=test_label)
                 assert htest[0].sum() == res_test.size
+                ax2.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
             # plot test residuals on every iteration
             interval = get_bounds_of_data_within_interval(res_test, x=0.95)
@@ -132,7 +134,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a prediction error chart - uses 1 trained MLM
-    if False:
+    if True:
 
         # train and score MLM
         model = MLM(**mlm)
@@ -143,7 +145,7 @@ for ds in [rma]:
 
         # set up chart
         title = 'Prediction Error Chart, {} dataset'.format(ds['name'])
-        fig, ax = open_figure(title, figsize=(12, 6))
+        fig, ax = open_figure(title, figsize=figsize)
 
         # plot prediction error
         train = ax.plot(y_train, y_train_pred, 'o', label='Train $r^2$ = {:.3f}'.format(r2_score(y_true=y_train, y_pred=y_train_pred)))[0]
@@ -161,7 +163,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a learning curve chart - uses many trained MLMs
-    if True:
+    if False:
 
         # generate data for learning curve
         model = MLM(**mlm)
@@ -198,7 +200,7 @@ for ds in [rma]:
         y_test_max = np.array([np.max(r2_scores[xi]['test']) for xi in x])
 
         # plot learning curve data
-        fig, ax = open_figure('Regression Learning Curve Chart', figsize=(12, 6))
+        fig, ax = open_figure('Regression Learning Curve Chart', figsize=figsize)
         train = ax.fill_between(x=np.hstack((x, x[::-1])), y1=np.hstack((y_train_min, y_train_max[::-1])), alpha=0.5, label='train data bounds')
         test = ax.fill_between(x=np.hstack((x, x[::-1])), y1=np.hstack((y_test_min, y_test_max[::-1])), alpha=0.5, label='test data bounds')
         ax.plot(x, y_train_mean, '.-', color=train.get_facecolor()[0], ms=12, lw=3, label='train data mean')[0]
@@ -238,7 +240,7 @@ for ds in [rma]:
 
         # plot results
         title = 'Regression Model Coefficient Chart, {} dataset'.format(ds['name'])
-        fig = plt.figure(title, figsize=(12, 6))
+        fig = plt.figure(title, figsize=figsize)
         fig.canvas.set_window_title(title)
         ax1 = plt.subplot2grid(shape=(5, 1), loc=(0, 0), rowspan=4, colspan=1)
         ax2 = plt.subplot2grid(shape=(5, 1), loc=(4, 0), rowspan=1, colspan=1)
@@ -252,6 +254,7 @@ for ds in [rma]:
         ax1.legend(loc='upper left', bbox_to_anchor=(1, 1), numpoints=1)
         ax1.set_yticks(y)
         ax1.set_yticklabels(cols)
+        ax1.set_ylim(-0.5, y.size - 0.5)
         format_axes('', '', 'Coefficient ranges for {} models, each trained with random {:.0f}% of instances'.format(N, frac * 100), ax1)
 
         ax2.plot(np.mean(intercepts), 1, 'o', color=p.get_color())
@@ -265,7 +268,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # statsmodel implementation on full dataset
-    if False:
+    if True:
         endog = ds['y']
         exog = pd.DataFrame(data=np.hstack((ds['X'].values, np.expand_dims(np.ones(ds['X'].shape[0]), axis=1))), columns=list(ds['X'].columns) + ['intercept'])
         ols = sm.OLS(endog=endog, exog=exog)
