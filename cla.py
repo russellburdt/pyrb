@@ -29,25 +29,16 @@ cio = datasets.supervised_ionosphere()
 cbl = datasets.supervised_blobs()
 with open(r'c:\Users\rburdt\Desktop\XL\2019, ADAPT\ASML-XL-2017-2019\features.p', 'rb') as fid:
     cfa = pickle.load(fid)
-    idx = cfa['X']['GL1-P-no fault found'] <= 50
-    cols = [x for x in cfa['X'].columns if 'GL1-P' not in x]
-    cols.remove('GL1-events in FSD')
-    cols.remove('GL1-F-no fault found')
-    for x in [x for x in cols if np.all(cfa['X'][x] == 0)]:
-        cols.remove(x)
-    cfa['X'] = cfa['X'].loc[idx, cols].copy()
-    # cfa['X'] = cfa['X'].loc[idx].copy()
-    cfa['y'] = cfa['y'][idx].copy()
 
 # model hyper-parameters
 MLM = SVC
-mlm = {'gamma': 'auto', 'C': 0.6, 'kernel': 'linear'}
+mlm = {'gamma': 'auto', 'C': 0.8, 'kernel': 'linear'}
 
 # scan over datasets
 for ds in [cfa]:
 
     # create a learning curve chart - uses many trained MLMs
-    if True:
+    if False:
 
         # load data
         name = ds['name']
@@ -57,6 +48,9 @@ for ds in [cfa]:
         sc = StandardScaler()
         sc.fit(X)
         Xs = sc.transform(X)
+        sc = Normalizer()
+        sc.fit(Xs)
+        Xs = sc.transform(Xs)
 
         # generate data for learning curve
         model = MLM(**mlm)
