@@ -8,13 +8,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 from sklearn.svm import SVC
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_val_score
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, Normalizer
+from sklearn.metrics.pairwise import rbf_kernel
 from pyrb import open_figure, format_axes, largefonts, save_pngs
 from pyrb import datasets
 from ipdb import set_trace
 from tqdm import tqdm
+
 
 # plotting
 plt.style.use('bmh')
@@ -23,19 +25,52 @@ size = 14
 
 # load classification datasets
 cad = datasets.supervised_adult(size=3000, random_state=0)
-css = datasets.supervised_skin_segmentation()
+css = datasets.supervised_skin_segmentation(size=3000, random_state=0)
 cbn = datasets.supervised_banknote()
 cio = datasets.supervised_ionosphere()
 cbl = datasets.supervised_blobs()
-with open(r'c:\Users\rburdt\Desktop\XL\2019, ADAPT\ASML-XL-2017-2019\features.p', 'rb') as fid:
+with open(r'c:\Users\rburdt\Desktop\features.p', 'rb') as fid:
     cfa = pickle.load(fid)
 
 # model hyper-parameters
 MLM = SVC
-mlm = {'gamma': 'auto', 'C': 0.8, 'kernel': 'linear'}
+mlm = {'gamma': 5e-2, 'C': 1.0, 'kernel': 'rbf'}
 
 # scan over datasets
-for ds in [cfa]:
+for ds in [cad, css, cbn, cio, cbl, cfa]:
+
+    print('dataset {}, X shape {}, yshape {}, n classes {}'.format(ds['name'], ds['X'].shape, ds['y'].shape, pd.unique(ds['y']).size))
+    model = MLM(**mlm)
+    sc = StandardScaler()
+    sc.fit(ds['X'].values)
+    Xs = sc.transform(ds['X'])
+    scores = cross_val_score(model, Xs, ds['y'].values, cv=4)
+    scores = ', '.join(['{:.2f}'.format(x) for x in scores])
+    model.fit(Xs, ds['y'].values)
+    print('\t4-fold cross val scores, {}, coef shape {}'.format(scores, model._get_coef().shape))
+    print('\tn support vectors {}'.format(model.support_vectors_.shape[0]))
+
+    # compare decision to implementation of manual decision function
+    if False:
+        df = model.decision_function(Xs)
+        if mlm['kernel'] == 'linear':
+            pred = np.dot(Xs, model.coefs_.T).squeeze() + model.intercept_
+            assert np.all(np.isclose(pred, df))
+        elif mlm['kernel'] == 'rbf':
+
+            # implement the manual decision function for individual rows of Xs
+            def manual_decision_function(x):
+                assert x.shape == (1, Xs.shape[1])
+                sv = model.support_vectors_
+                diff = sv - x
+                norm2 = np.array([np.linalg.norm(diff[n, :]) for n in range(sv.shape[0])])
+                norm2 = np.expand_dims(norm2, axis=1)
+                k = np.exp(-model.gamma * (norm2 ** 2))
+                decision = np.dot(model.dual_coef_, k) + model.intercept_
+                return decision[0][0]
+
+            pred = np.array([manual_decision_function(np.expand_dims(Xs[x, :], axis=1).T) for x in range(Xs.shape[0])])
+            assert np.all(np.isclose(pred, df))
 
     # create a learning curve chart - uses many trained MLMs
     if False:

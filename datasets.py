@@ -469,7 +469,7 @@ def supervised_adult(size=None, random_state=None):
 
     return out
 
-def supervised_skin_segmentation():
+def supervised_skin_segmentation(size=None, random_state=None):
     """
     retrieve information from UCI Machine Learning Repository
     https://archive.ics.uci.edu/ml/datasets/Skin+Segmentation
@@ -487,6 +487,11 @@ def supervised_skin_segmentation():
     data = [x.split() for x in data]
     assert np.unique([len(x) for x in data]) == 4
     data = np.array(data)
+    if size is not None:
+        if random_state is not None:
+            np.random.seed(random_state)
+        x = np.random.choice(range(data.shape[0]), size, replace=False)
+        data = data[x, :]
     X = data[:, :-1]
     y = data[:, -1]
 
