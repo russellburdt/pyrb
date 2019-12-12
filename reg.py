@@ -16,6 +16,7 @@ from sklearn.linear_model import LinearRegression as MLM
 # from sklearn.linear_model import ElasticNet as MLM
 # from sklearn.linear_model import Lasso as MLM
 from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.decomposition import PCA
 from pyrb import datasets
 from pyrb import largefonts, save_pngs, format_axes, open_figure
 from pyrb import get_bounds_of_data_within_interval
@@ -54,8 +55,11 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a feature correlation chart - does not use any MLM
-    if False:
+    if True:
         df = ds['X'].copy()
+        # pca = PCA()
+        # pca.fit(df.values)
+        # df = pd.DataFrame(data=pca.transform(df.values), columns=df.columns)
         df[ds['y'].name] = ds['y'].values
         corr = np.flipud(df.corr().values)
         n = corr.shape[0]
@@ -163,7 +167,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a learning curve chart - uses many trained MLMs
-    if False:
+    if True:
 
         # generate data for learning curve
         model = MLM(**mlm)

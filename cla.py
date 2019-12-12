@@ -9,7 +9,7 @@ import pandas as pd
 import pickle
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold, cross_val_score
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import StandardScaler, Normalizer
 from sklearn.metrics.pairwise import rbf_kernel
 from pyrb import open_figure, format_axes, largefonts, save_pngs
@@ -34,16 +34,16 @@ with open(r'c:\Users\rburdt\Desktop\features.p', 'rb') as fid:
 
 # model hyper-parameters
 MLM = SVC
-mlm = {'gamma': 5e-2, 'C': 1.0, 'kernel': 'rbf'}
+mlm = {'C': 1, 'kernel': 'rbf', 'gamma': 5e-2}
 
 # scan over datasets
-for ds in [cad, css, cbn, cio, cbl, cfa]:
+for ds in [cfa]:
 
     print('dataset {}, X shape {}, yshape {}, n classes {}'.format(ds['name'], ds['X'].shape, ds['y'].shape, pd.unique(ds['y']).size))
     model = MLM(**mlm)
-    sc = StandardScaler()
+    sc = Normalizer()
     sc.fit(ds['X'].values)
-    Xs = sc.transform(ds['X'])
+    Xs = sc.transform(ds['X'].values)
     scores = cross_val_score(model, Xs, ds['y'].values, cv=4)
     scores = ', '.join(['{:.2f}'.format(x) for x in scores])
     model.fit(Xs, ds['y'].values)
