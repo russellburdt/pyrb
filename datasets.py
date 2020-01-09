@@ -35,6 +35,7 @@ Current data sources are
 Author - Russell Burdt
 """
 
+import gzip
 import requests
 import numpy as np
 import pandas as pd
