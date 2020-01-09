@@ -147,9 +147,12 @@ def get_pvalue_bootstrap(x, y, n=10000):
     # p-value is the number of times the bootstrap difference exceeds the original difference
     return (bootstrap > diff).sum() / n
 
-def example():
+def example_means():
+    """
+    compare mean womens height (x) and mens height (y) based on data samples
+    """
 
-    # example - compare womens (x) and mens (y) heights based on data samples
+    # define x and y samples
     x = np.array([5.33, 5.33, 5.17, 5.75, 5.42, 5.42, 5.50, 5.50, 5.58, 5.33, 5.50, 5.67, 5.42, 5.25,
                   6.17, 5.42, 5.33, 5.17, 5.42, 5.42, 5.42, 5.42, 5.42, 5.83, 5.33, 5.67, 5.33, 5.66,
                   5.25, 5.75, 5.57, 5.35, 5.42, 5.08, 5.75, 5.33, 5.08])
@@ -171,44 +174,28 @@ def example():
     pvalue_t = get_pvalue_t_statistic(y, x)
     pvalue_b = get_pvalue_bootstrap(y, x)
 
-# # find symmetric bounds of normal distribution with 'confidence' of finding a random variable
-# confidence = 0.98
-# norm_pdf = lambda x: norm.pdf(x, loc=0, scale=1)
-# norm_integral = lambda x: quad(norm_pdf, -x, x)[0]
-# bound = fsolve(lambda x: norm_integral(x) - confidence, 0)
+def example_proportions():
+    """
+    compare proportions (conversion rates at price A and at price B) based on data samples
+    -- outcome --   -- price A --   -- price B --
+    conversion          200             182
+    no conversion      23539           22406
+    """
 
-# # find probability of getting X heads in n flips of a fair coin
-# X = 4900
-# n = 10000
-# print('prob of {} heads in {} flips of fair coin - {:.3f}'.format(X, n, binom(n=n, p=0.5).pmf(X)))
-# print('prob of {} or more heads in {} flips of fair coin - {:.3f}'.format(X, n, binom(n=n, p=0.5).pmf(range(X, n + 1)).sum()))
-# xbar = X / n
-# z = (xbar - 0.50) / ((0.50 * (1 - 0.50)) / n)**0.5
-# pvalue = (1 - norm_integral(z)) / 2
-# print('prob of {} or more heads in {} flips of fair coin - {:.3f}'.format(X, n, pvalue))
+    # define conversion data at price A and at price B
+    conv_a = np.hstack((np.ones(200), np.zeros(23539)))
+    conv_b = np.hstack((np.ones(182), np.zeros(22406)))
 
-# determine if data are from a normal distribution
-# N = 1000
-# normal = np.random.normal(4, 2, size=N)
-# not_normal = np.hstack((np.random.normal(2, 4, size=int(N/2)), np.random.normal(2, 1, size=int(N/2))))
-# p_normal = normaltest(normal).pvalue
-# p_not_normal = normaltest(not_normal).pvalue
-# jbp_normal = jarque_bera(normal)[1]
-# jbp_not_normal = jarque_bera(not_normal)[1]
-# title_normal = 'normal data' + \
-#                '\nnull hypothesis: x is from normal distribution' + \
-#                '\nscipy normaltest p-value={:g}'.format(p_normal) + \
-#                '\nscipy Jarque-Bera p-value={:g}'.format(jbp_normal)
-# title_not_normal = 'not normal data' + \
-#                '\nnull hypothesis: x is from normal distribution' + \
-#                '\nnormaltest p-value={:g}'.format(p_not_normal) + \
-#                '\nJarque-Bera p-value={:g}'.format(jbp_not_normal)
-# fig, ax = open_figure('scipy.stats.normaltest', 1, 2, figsize=(12, 6), sharex=True)
-# ax[0].hist(normal, bins=np.linspace(-10, 10, 100))
-# ax[1].hist(not_normal, bins=np.linspace(-10, 10, 100))
-# format_axes('x', 'bin count', title_normal, ax[0])
-# format_axes('x', 'bin count', title_not_normal, ax[1])
-# fig.tight_layout()
-# plt.show()
+    # get sample proportions at price A and at price B
+    pa_sample_proportion = conv_a.sum() / conv_a.size
+    pb_sample_proportion = conv_b.sum() / conv_b.size
 
+    # get 95% confidence intervals for population proportions at price A and at price B
+    pa_population_proportion = get_conf_interval_bootstrap(conv_a, confidence=0.95)
+    pb_population_proportion = get_conf_interval_bootstrap(conv_a, confidence=0.95)
 
+    # get p-value for conversion rate at price A > conversion rate at price B, i.e.
+    # H0: pa_population_proportion <= pb_population_proportion
+    # HA: pa_population_proportion > pb_population_proportion
+    pvalue_t = get_pvalue_t_statistic(conv_a, conv_b)
+    pvalue_b = get_pvalue_bootstrap(conv_a, conv_b)
