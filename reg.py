@@ -81,9 +81,10 @@ for ds in [rma]:
         axm.set_ylim(-0.1, n + 0.1)
         axm.set_xticks(ticks)
         axm.set_yticks(ticks)
+        cols = [x.replace('total hours of ', '') for x in cols]
         axm.set_xticklabels(cols, rotation=90)
         axm.set_yticklabels(cols[::-1])
-        axm.set_title('Regression Feature Correlation Matrix')
+        axm.set_title('Correlation Matrix for Component Duration Metrics')
         for xi, x in enumerate(ticks):
             for yyi, yy in enumerate(ticks):
                 axm.text(x, yy, s='{:.2f}'.format(corr[yyi, xi]), fontweight='bold', fontsize=10, ha='center', va='center')
@@ -91,7 +92,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a residuals chart - uses many trained MLMs
-    if True:
+    if False:
 
         # set up residual chart
         N = 100
@@ -138,7 +139,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a prediction error chart - uses 1 trained MLM
-    if True:
+    if False:
 
         # train and score MLM
         model = MLM(**mlm)
@@ -167,7 +168,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # create a learning curve chart - uses many trained MLMs
-    if True:
+    if False:
 
         # generate data for learning curve
         model = MLM(**mlm)
@@ -217,7 +218,7 @@ for ds in [rma]:
         fig.subplots_adjust(right=0.8)
 
     # create a model coefficient chart - uses many trained MLMs
-    if True:
+    if False:
 
         # extract model coefficients for repeated runs
         N = 1000                            # number of times to run the model and identify coefficient ranges
@@ -272,7 +273,7 @@ for ds in [rma]:
         fig.tight_layout()
 
     # statsmodel implementation on full dataset
-    if True:
+    if False:
         endog = ds['y']
         exog = pd.DataFrame(data=np.hstack((ds['X'].values, np.expand_dims(np.ones(ds['X'].shape[0]), axis=1))), columns=list(ds['X'].columns) + ['intercept'])
         ols = sm.OLS(endog=endog, exog=exog)
