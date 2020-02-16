@@ -29,8 +29,6 @@ css = datasets.supervised_skin_segmentation(size=3000, random_state=0)
 cbn = datasets.supervised_banknote()
 cio = datasets.supervised_ionosphere()
 cbl = datasets.supervised_blobs()
-with open(r'c:\Users\rburdt\Desktop\features.p', 'rb') as fid:
-    cfa = pickle.load(fid)
 
 # model hyper-parameters
 MLM = SVC
