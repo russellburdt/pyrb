@@ -20,7 +20,6 @@ update_figs = mpl.update_figs
 
 # hooks to pyrb.processing
 from pyrb import processing
-get_most_likely_distribution_membership = processing.get_most_likely_distribution_membership
 get_bounds_of_data_within_interval = processing.get_bounds_of_data_within_interval
 arange = processing.arange
 is_datetime_week_number_begin = processing.is_datetime_week_number_begin
