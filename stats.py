@@ -114,10 +114,14 @@ def get_pvalue_t_statistic(x, y):
     sx, sy = x.std(), y.std()
 
     # get t-statistic under null hypothesis (ux = uy)
-    ts = (xbar - ybar) / np.sqrt((sx**2 / nx) + (sy**2 / ny))
+    # ts = (xbar - ybar) / np.sqrt((sx**2 / nx) + (sy**2 / ny))
+    a = xbar - ybar
+    b = np.sqrt((((nx - 1) * sx**2) + ((ny - 1) * sy**2)) / (nx + ny - 2))
+    c = np.sqrt((1 / nx) + (1 / ny))
+    ts = a / (b * c)
     t_pdf = lambda x: t.pdf(x, df=nx + ny - 2, loc=0, scale=1)
 
-    return quad(t_pdf, ts, np.inf)[0]
+    return ts, quad(t_pdf, ts, np.inf)[0]
 
 def get_pvalue_bootstrap(x, y, n=10000):
     """
