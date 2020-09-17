@@ -228,7 +228,7 @@ def save_pngs(save_dir, maximize=False, close=True):
     if close:
         plt.close('all')
 
-def open_figure(fig_title='', rows=1, columns=1, handle_2d1d=False, handle_1d0d=False, **kwargs):
+def open_figure(fig_title='', rows=1, columns=1, handle_2d1d=False, handle_1d0d=False, use_existing=True, **kwargs):
     """
     wrapper around plt.subplots:
     -- opens a figure of fig_title, returns fig and axes objects
@@ -246,7 +246,10 @@ def open_figure(fig_title='', rows=1, columns=1, handle_2d1d=False, handle_1d0d=
     import numpy as np
 
     # get a list of current figs
-    figs = get_current_figs()
+    if use_existing:
+        figs = get_current_figs()
+    else:
+        figs = ([], [])
 
     # get fig and ax objects differently depending on existence of fig_title
     if fig_title in figs[1]:
