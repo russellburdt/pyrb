@@ -99,6 +99,7 @@ def largefonts(size=18, title=True, xaxis=True, yaxis=True, legend=True):
                 ticks = ax.xaxis.get_majorticklabels()
                 for tick in ticks:
                     tick.set_fontsize(size)
+                ax.xaxis.get_offset_text().set_size(size)
 
             # update fontsize of legend
             if legend:
