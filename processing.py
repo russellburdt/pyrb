@@ -638,7 +638,8 @@ def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
     if not sort_order:
         pngs = sorted()
     else:
-        pngs = pngs[sort_order]
+        assert len(sort_order) == len(pngs)
+        pngs = [pngs[x] for x in sort_order]
     if len(pngs) == 0:
         print('No png images found, returning without creating a presentation')
         return
