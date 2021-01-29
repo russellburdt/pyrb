@@ -598,7 +598,7 @@ def memoized(f):
 
 def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
              fname=None, author='Author', date=None, title=None,
-             add_exec_summary=False, img_width=9, takeaways=None):
+             add_exec_summary=False, img_width=9, takeaways=None, sort_order=None):
 
     """
     create powerpoint presentation from folder of png image files in pngs_dir
@@ -634,7 +634,10 @@ def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
         title = 'Created with python-pptx {}'.format(pptx.__version__)
 
     # get all png files in a list, return if empty
-    pngs = sorted(glob(os.path.join(pngs_dir, r'*.png')))
+    if not sort_order:
+        pngs = sorted(glob(os.path.join(pngs_dir, r'*.png')))
+    else:
+        pngs = pngs[sort_order]
     if len(pngs) == 0:
         print('No png images found, returning without creating a presentation')
         return
