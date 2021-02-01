@@ -636,7 +636,7 @@ def pngs2ppt(pngs_dir, template=r'c:\pngs2ppt_template.pptx',
     # get all png files in a list, return if empty
     pngs = glob(os.path.join(pngs_dir, r'*.png'))
     if not sort_order:
-        pngs = sorted()
+        pngs = sorted(pngs)
     else:
         assert len(sort_order) == len(pngs)
         pngs = [pngs[x] for x in sort_order]
