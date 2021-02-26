@@ -112,10 +112,11 @@ def largefonts(size=18, title=True, xaxis=True, yaxis=True, legend=True):
     # finally, redraw the figures
     update_figs()
 
-def format_axes(xlabel, ylabel, title=None, axes=None):
+def format_axes(xlabel, ylabel, title=None, axes=None, apply_concise_date_formatter=False):
     """
     set xlabel, ylabel, title, and turn on grid for ax or plt.gca()
     ax can be a list of Axes or a single Axes object
+    * apply ConciseDateFormatter if requested
     """
 
     import matplotlib.pyplot as plt
@@ -128,13 +129,20 @@ def format_axes(xlabel, ylabel, title=None, axes=None):
     if not hasattr(axes, '__iter__'):
         axes = [axes]
 
-    # format axes for all axes in ax list
+    # format axes for all axes
     for ax in axes:
+        assert isinstance(ax, plt.Axes)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         if title:
             ax.set_title(title)
         ax.grid(True)
+        if apply_concise_date_formatter:
+            import matplotlib.dates as mdates
+            locator = mdates.AutoDateLocator()
+            formatter = mdates.ConciseDateFormatter(locator)
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(formatter)
 
 def addspecline(spec, ax=None, percent_margin=5, color='r'):
     """
