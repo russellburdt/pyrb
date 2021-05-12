@@ -3,6 +3,13 @@
 short data processing utility methods
 """
 
+def int_to_ordinal(x):
+    """
+    converts 1 to '1st', 2 to '2nd', ...
+    copied from https://stackoverflow.com/questions/9647202/ordinal-numbers-replacement
+    """
+    return '%d%s' % (x,'tsnrhtdd'[(x//10%10!=1)*(x%10<4)*x%10::4])
+
 def webm_to_gps(lon, lat):
     """
     convert web-mercator coordinates (EPSG-3857) to GPS coordinates (EPSG-4326)
