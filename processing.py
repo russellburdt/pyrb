@@ -3,6 +3,24 @@
 short data processing utility methods
 """
 
+def webm_to_gps(lon, lat):
+    """
+    convert web-mercator coordinates (EPSG-3857) to GPS coordinates (EPSG-4326)
+    returns lon, lat in Web Mercator coords
+    """
+    from pyproj import Transformer
+    x = Transformer.from_crs(crs_from=3857, crs_to=4326, always_xy=True).transform(lon, lat)
+    return x[0], x[1]
+
+def gps_to_webm(lon, lat):
+    """
+    convert GPS coordinates (EPSG-4326) to web-mercator coordinates (EPSG-3857)
+    returns lon, lat in GPS coords
+    """
+    from pyproj import Transformer
+    x = Transformer.from_crs(crs_from=4326, crs_to=3857, always_xy=True).transform(lon, lat)
+    return x[0], x[1]
+
 def get_bounds_of_data_within_interval(data, x=0.95):
     """
     return bounds of an array 'data' where at least x percent of the data are contained
