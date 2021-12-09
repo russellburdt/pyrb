@@ -11,7 +11,7 @@ def get_current_figs():
     import matplotlib
 
     managers = matplotlib._pylab_helpers.Gcf.get_all_fig_managers()
-    titles = [x.canvas.get_window_title() for x in managers]
+    titles = [x.canvas.manager.get_window_title() for x in managers]
     return managers, titles
 
 def subplots_adjust(**kwargs):
@@ -107,7 +107,7 @@ def largefonts(size=18, title=True, xaxis=True, yaxis=True, legend=True):
                 if leg is None:
                     continue
                 for child in leg.get_texts():
-                    child.set_fontsize(size-2)
+                    child.set_fontsize(size)
 
     # finally, redraw the figures
     update_figs()
@@ -271,7 +271,7 @@ def open_figure(fig_title='', rows=1, columns=1, handle_2d1d=False, handle_1d0d=
             ax = np.array(fig.get_axes())
     else:
         fig, ax = plt.subplots(rows, columns, **kwargs)
-        fig.canvas.set_window_title(fig_title)
+        fig.canvas.manager.set_window_title(fig_title)
 
     # add an extra dimension to 1d ax array if requested
     if handle_2d1d and ax.ndim == 1:

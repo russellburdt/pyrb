@@ -3,6 +3,55 @@
 short data processing utility methods
 """
 
+def get_binary_contiguous_indices(array, partial=False):
+    """
+    identify indices of array where binary values are True and contiguous
+    e.g. array = np.array([False, False, True, True, True, False, True, True, False, True, True])
+        returns
+        [(2, 3, 4), (6, 7)]
+        if partial=False (9, 10) is not part of the result because it is not clear that contiguous block has ended
+        otherwise (9, 10) is part of the result
+    """
+
+    # validate array and convert to int
+    assert array.dtype == np.bool
+    assert array.ndim == 1
+    array = array.astype(np.int)
+
+    # identify indices of positive and negative transitions
+    plus = np.where(np.diff(array) == 1)[0] + 1
+    minus = np.where(np.diff(array) == -1)[0]
+
+    # case where array is True at both ends
+    if (plus.size == minus.size) and (array[0] == 1):
+        assert array[-1] == 1
+        assert minus[0] < plus[0]
+        assert plus[-1] > minus[-1]
+
+        if partial == True:
+            plus = np.hstack((0, plus))
+            minus = np.hstack((minus, array.size - 1))
+        else:
+            minus = minus[1:]
+            plus = plus[:-1]
+
+    # case where array is True at one end but not the other
+    # (does not handle the partial case)
+    if plus.size != minus.size:
+        assert np.logical_xor(array[0] == 1, array[-1] == 1)
+
+        # array is True at the left end
+        if array[0] == 1:
+            minus = minus[1:]
+
+        # array is True at the right end
+        if array[-1] == 1:
+            plus = plus[:-1]
+        assert plus.size == minus.size
+
+    # combine and return plus and minus indices
+    return [(a, b) for a, b in zip(plus, minus)]
+
 def int_to_ordinal(x):
     """
     converts 1 to '1st', 2 to '2nd', ...
@@ -114,6 +163,23 @@ def numpy_datetime64_to_datetime(dt):
 
     tref = np.datetime64('1970-01-01T00:00:00Z')
     return np.array([datetime.utcfromtimestamp((x - tref) / np.timedelta64(1, 's')) for x in dt])
+
+def get_folder_size(start_path):
+    """
+    get size of folder in bytes, copied from
+    https://stackoverflow.com/questions/1392413/calculating-a-directorys-size-using-python
+    """
+    import os
+
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+
+    return total_size
 
 def linspace(start, stop, num):
     """
