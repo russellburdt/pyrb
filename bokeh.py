@@ -433,9 +433,9 @@ def str_axis_labels(axis, labels):
 
     # validate
     assert isinstance(axis.ticker, FixedTicker)
-    assert isinstance(axis.ticker.ticks, np.ndarray)
+    assert isinstance(axis.ticker.ticks, list)
     assert isinstance(labels, np.ndarray)
-    assert axis.ticker.ticks.size == labels.size
+    assert len(axis.ticker.ticks) == labels.size
 
     # create the FuncTickFormatter object
     label_dict = {a: b for (a, b) in zip(range(labels.size), labels)}
