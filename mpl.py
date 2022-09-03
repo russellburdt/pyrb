@@ -1,6 +1,6 @@
 
 """
-short matplotlib utility methods
+matplotlib utils
 """
 
 def get_current_figs():
@@ -229,7 +229,7 @@ def save_pngs(save_dir, maximize=False, close=True):
     fig_list = get_current_figs()
     for fig in fig_list[0]:
         fig_title = fig.get_window_title()
-        fig_name = os.path.join(save_dir, fig_title + '.png')
+        fig_name = os.path.join(save_dir, fig_title + '.png').replace('\n', ' ')
         matplotlib._pylab_helpers.Gcf.set_active(fig)
         if maximize:
             fig.window.showMaximized()

@@ -31,8 +31,6 @@ Current data sources are
     2) UCI Machine Learning Repository, https://archive.ics.uci.edu/ml/index.php
     3) yellowbrick (districtdatalabs channel of conda)
     4) misc URLs
-
-Author - Russell Burdt
 """
 
 import gzip
