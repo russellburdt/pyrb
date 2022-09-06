@@ -3,6 +3,97 @@
 matplotlib utils
 """
 
+def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=None, ylabel='bin count',
+        legend=None, loc='upper left', bbox_to_anchor=(1, 1), figsize=(12, 6), size=18, logscale=False, pdf=False, alpha=0.8):
+    """
+    create or update matplotlib distribution
+    - x - data
+    - bins - bins for data
+    - title - figure title always, axes title if ax_title is None
+    - ax_title - axes title if not None
+    - xlabel - axes x label
+    - legend - label for legend (None to disable)
+    - loc, bbox_to_anchor - legend properties if applicable
+    - figsize and size - formatting
+    - logscale - use log-scale for y-axis
+    - pdf - scale data as a probability distribution
+    """
+
+    import numpy as np
+    from ipdb import set_trace
+
+    # validate bins, remove nans
+    assert all(np.sort(bins) == bins)
+    bx = np.unique(np.diff(bins))
+    assert bx.size >= 1
+    if bx.size > 1:
+        assert all([np.isclose(bx[0], bx[xi]) for xi in range(1, bx.size)])
+    width = bx[0]
+    x = x[~np.isnan(x)]
+
+    # fig and ax objects
+    fig, ax = open_figure(title, figsize=figsize)
+
+    # distribution
+    xd = np.digitize(x, bins)
+    height = np.array([(xd == xi).sum() for xi in range(0, bins.size + 1)])
+
+    # scale as pdf
+    if pdf:
+        height = height / height.sum()
+
+    # distribution and limits data based on cases of height data
+    assert height.size == bins.size + 1
+    if (height[0] == 0) and (height[-1] == 0):
+        centers = (bins[1:] + bins[:-1]) / 2
+        xmin = bins[0]
+        xmax = bins[-1]
+        bins = bins[:-1]
+        height = height[1:-1]
+    elif (height[0] > 0) and (height[-1]) > 0:
+        bins = np.hstack((bins[0] - width, bins))
+        bx = np.hstack((bins, bins[-1] + width))
+        centers = (bx[1:] + bx[:-1]) / 2
+        xmin = bx[0]
+        xmax = bx[-1]
+    elif (height[0] == 0) and (height[-1] > 0):
+        height = height[1:]
+        bx = np.hstack((bins, bins[-1] + width))
+        centers = (bx[1:] + bx[:-1]) / 2
+        xmin = bx[0]
+        xmax = bx[-1]
+    elif (height[0] > 0) and (height[-1] == 0):
+        bins = np.hstack((bins[0] - width, bins[:-1]))
+        height = height[:-1]
+        bx = np.hstack((bins, bins[-1] + width))
+        centers = (bx[1:] + bx[:-1]) / 2
+        xmin = bx[0]
+        xmax = bx[-1]
+    else:
+        raise ValueError('new case')
+
+    # plot distribution and outline
+    ax.bar(x=bins, height=height, align='edge', width=width, alpha=alpha)
+    ax.plot(centers, height, '-', lw=2, label=legend)
+
+    # clean up
+    ax.set_xlim(xmin, xmax)
+    title = title if ax_title is None else ax_title
+    if pdf:
+        format_axes(xlabel, 'probability density', title, ax)
+    else:
+        format_axes(xlabel, ylabel, title, ax)
+    if logscale:
+        ax.set_yscale('log')
+    if legend is not None:
+        leg = ax.legend(loc=loc, bbox_to_anchor=bbox_to_anchor)
+        for x in leg.get_lines():
+            x.set_linewidth(4)
+    largefonts(size)
+    fig.tight_layout()
+
+    return fig, ax
+
 def get_current_figs():
     """
     get list of current matplotlib figure managers
