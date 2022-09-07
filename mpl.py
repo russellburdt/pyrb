@@ -20,7 +20,6 @@ def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=Non
     """
 
     import numpy as np
-    from ipdb import set_trace
 
     # validate bins, remove nans
     assert all(np.sort(bins) == bins)
