@@ -18,6 +18,7 @@ class MultiLineInterface:
     """
     interface for figure object with following glyphs
     - n circle/line glyphs, style set by palette and line_width args
+    - circle glyphs support tap tool
     - x/line segment glyphs, fixed style
     - x position glyph, fixed style
     other configuration includes
@@ -37,14 +38,14 @@ class MultiLineInterface:
     methods
     - reset_interface
     """
-    def __init__(self, width=700, height=300, xlabel='', ylabel='', title='', size=12, legend_location='bottom_right',
+    def __init__(self, width=700, height=300, xlabel='', ylabel='', title='', size=12, legend_location='bottom_right', legend_layout_location='center',
         hover=False, tap=False, cross=False, dimensions='both', n=20, palette='Category20_20', circle=True, line=True, line_width=1,
-        manual_xlim=False, manual_ylim=False, datetime=False, box_dimensions='both'):
+        manual_xlim=False, manual_ylim=False, datetime=False, box_dimensions='both', toolbar_location='right'):
 
         # standard tools
         pan, wheel = PanTool(dimensions=dimensions), WheelZoomTool(dimensions=dimensions)
-        box, reset, save = BoxZoomTool(dimensions=box_dimensions), ResetTool(), SaveTool()
-        tools = [pan, wheel, box, reset, save]
+        box, reset, undo, save = BoxZoomTool(dimensions=box_dimensions), ResetTool(), UndoTool(), SaveTool()
+        tools = [pan, wheel, box, reset, undo, save]
 
         # crosshair tool
         self.cross = cross
@@ -68,7 +69,7 @@ class MultiLineInterface:
             self.tap = tap_tool
 
         # figure object
-        self.fig = figure(width=width, height=height, tools=tools, toolbar_location='right')
+        self.fig = figure(width=width, height=height, tools=tools, toolbar_location=toolbar_location)
         self.fig.toolbar.logo = None
         if manual_xlim:
             self.fig.x_range = Range1d()
@@ -90,7 +91,12 @@ class MultiLineInterface:
         colors = palettes.linear_palette(getattr(palettes, palette), n)
         for src, color in zip(self.data_sources, colors):
             if circle:
-                self.fig.circle('x', 'y', source=src, size=6, color=color)
+                self.fig.circle('x', 'y', source=src, size=6, color=color, name='circles',
+                    # visual properties for selected
+                    selection_color='red',
+                    # visual properties for non-selected
+                    nonselection_fill_alpha=1,
+                    nonselection_fill_color=color)
             if line:
                 self.fig.line('x', 'y', source=src, line_width=line_width, color=color)
         if np.logical_xor(circle, line):
@@ -109,7 +115,7 @@ class MultiLineInterface:
 
         # legend object
         self.legend = Legend(location=legend_location)
-        self.fig.add_layout(self.legend, 'center')
+        self.fig.add_layout(self.legend, legend_layout_location)
 
         # format axes and reset interface
         format_axes(self.fig, xlabel, ylabel, title, size)
@@ -198,12 +204,12 @@ class MapInterface:
         # path data source and glyphs
         self.path = ColumnDataSource()
         self.fig.circle('lon', 'lat', source=self.path, size=6, color='darkblue', name='path')
-        self.fig.line('lon', 'lat', source=self.path, line_width=2, color='darkblue', name='path')
+        self.fig.line('lon', 'lat', source=self.path, line_width=1, color='darkblue', name='path', alpha=0.4)
 
         # segments data source and glyphs
         self.segments = ColumnDataSource()
-        self.fig.x('lon', 'lat', source=self.segments, size=3, color='violet', alpha=0.6, name='segments')
-        self.fig.line('lon', 'lat', source=self.segments, line_width=1, color='violet', alpha=0.6, name='segments')
+        self.fig.x('lon', 'lat', source=self.segments, size=6, color='violet', alpha=1, name='segments')
+        self.fig.line('lon', 'lat', source=self.segments, line_width=2, color='violet', alpha=1, name='segments')
 
         # nodes data source and glyphs
         self.nodes = ColumnDataSource()
@@ -502,16 +508,16 @@ class ShapValuesWaterfallInterface:
 
         # line glyph and arrow glyphs
         self.fig.line('x', 'y', source=self.base, line_width=4, color='black', line_dash='dashed')
-        self.fig.add_layout(Arrow(end=VeeHead(size=8, line_color='green', fill_color='green', line_width=2),
+        self.fig.add_layout(Arrow(end=VeeHead(size=10, line_color='green', fill_color='green', line_width=2),
             line_color='green', line_width=2, source=self.positive, x_start='x0', y_start='y0', x_end='x1', y_end='y1'))
-        self.fig.add_layout(Arrow(end=VeeHead(size=8, line_color='red', fill_color='red', line_width=2),
+        self.fig.add_layout(Arrow(end=VeeHead(size=10, line_color='red', fill_color='red', line_width=2),
             line_color='red', line_width=2, source=self.negative, x_start='x0', y_start='y0', x_end='x1', y_end='y1'))
 
         # numeric labels at ends of each arrow
         self.fig.add_layout(LabelSet(x='x1', y='y1', text='labels', source=self.positive,
-            text_align='left', text_baseline='middle', text_font_size='9pt', text_color='green'))
+            text_align='left', text_baseline='middle', text_font_size='11pt', text_color='green'))
         self.fig.add_layout(LabelSet(x='x1', y='y1', text='labels', source=self.negative,
-            text_align='right', text_baseline='middle', text_font_size='9pt', text_color='red'))
+            text_align='right', text_baseline='middle', text_font_size='11pt', text_color='red'))
 
         # reset interface
         self.reset_interface()

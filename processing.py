@@ -12,6 +12,7 @@ def get_binary_contiguous_indices(array, partial=False):
         if partial=False (9, 10) is not part of the result because it is not clear that contiguous block has ended
         otherwise (9, 10) is part of the result
     """
+    import numpy as np
 
     # validate array and convert to int
     assert array.dtype == np.bool
