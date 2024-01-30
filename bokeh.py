@@ -6,13 +6,51 @@ common bokeh utils
 import numpy as np
 from bokeh import palettes
 from bokeh.plotting import figure
-from bokeh.tile_providers import Vendors, get_provider
-from bokeh.models import ColumnDataSource, DataRange1d, Range1d, GlyphRenderer, LabelSet, Legend, LegendItem, Band, Patches
+from bokeh.models import ColumnDataSource, DataRange1d, Range1d, GlyphRenderer, LabelSet, Legend, LegendItem, Band, Patches, WMTSTileSource
 from bokeh.models import PanTool, BoxZoomTool, WheelZoomTool, ResetTool, SaveTool, TapTool, HoverTool, CrosshairTool, RedoTool, UndoTool
-from bokeh.models import Arrow, VeeHead, LabelSet
-from bokeh.models import FuncTickFormatter, FixedTicker, LogScale, DatetimeTickFormatter
+from bokeh.models import Arrow, VeeHead, LabelSet, FuncTickFormatter, FixedTicker, LogScale, DatetimeTickFormatter, TileRenderer
 from pyrb.processing import gps_to_webm
 from ipdb import set_trace
+
+import bokeh
+if bokeh.__version__ == '2.4.3':
+    from bokeh.tile_providers import Vendors, get_provider
+else:
+    import xyzservices
+
+class FrameInterface:
+    """
+    interface for figure object to render a static png image
+    - may be blinking when image url source is updated
+    - https://github.com/bokeh/bokeh/issues/13157
+    """
+    def __init__(self, width=600, height=330, size=10, title=''):
+
+        # figure object
+        self.fig = figure(width=width, height=height, tools='pan,box_zoom,wheel_zoom,save,reset', toolbar_location='left')
+        self.fig.toolbar.logo = None
+        self.fig.grid.visible = False
+        self.fig.axis.visible = False
+        self.fig.outline_line_color = None
+        self.fig.x_range.start = 0
+        self.fig.y_range.start = 0
+        self.fig.x_range.end = width
+        self.fig.y_range.end = height
+        self.fig.title.text = title
+
+        # data-source and glyph
+        self.frame = ColumnDataSource()
+        self.fig.image_url(url='frame', source=self.frame, x=0, y=0, w=width, h=height, anchor='bottom_left')
+        largefonts(self.fig, size)
+
+        # reset interface
+        self.reset_interface()
+
+    def reset_interface(self):
+        """
+        reset data source and yaxis ticks
+        """
+        self.frame.data = {'frame': np.array([])}
 
 class MultiLineInterface:
     """
@@ -160,8 +198,11 @@ class MapInterface:
         - reset_map_view
         - reset_interface
     """
+
     def __init__(self, width=700, height=300, map_vendor='OSM', size=12, hover=False, tap=False,
         lon0=-110, lon1=-70, lat0=25, lat1=50):
+
+        # assert bokeh.__version__ == '2.4.3'
 
         # standard tools
         pan, wheel, box, reset, redo, undo = PanTool(), WheelZoomTool(), BoxZoomTool(), ResetTool(), RedoTool(), UndoTool()
@@ -185,10 +226,11 @@ class MapInterface:
 
         # interactive map as a figure object
         self.fig = figure(width=width, height=height, tools=tools, toolbar_location='right')
-        self.fig.add_tile(tile_source=get_provider(getattr(Vendors, map_vendor)))
+        if bokeh.__version__ == '2.4.3':
+            self.fig.add_tile(tile_source=get_provider(getattr(Vendors, map_vendor)))
+        else:
+            self.fig.add_tile(tile_source=map_vendor)
         self.fig.toolbar.logo = None
-        self.fig.x_range = DataRange1d()
-        self.fig.y_range = DataRange1d()
         self.fig.toolbar.active_drag = pan
         self.fig.toolbar.active_scroll = wheel
         self.fig.toolbar.active_inspect = self.hover
@@ -283,6 +325,128 @@ class MapInterface:
         self.events.data = {'lon': np.array([]), 'lat': np.array([])}
         self.nodes.data = {'lon': [], 'lat': [], 'lon_centroids': np.array([]), 'lat_centroids': np.array([])}
         self.links.data = {'lon': np.array([]), 'lat': np.array([])}
+
+class MapInterface2:
+    """
+    interface for map object supporting following glyphs
+        - path1 - darkblue circle/line glyphs
+        - path2 - darkorange circle/line glyphs
+        - position1 - darkblue asterik glyph
+        - position2 - darkorange asterik glyph
+        - event marker - red x glyph
+    - arguments to init
+        - width, height, map_vendor, size - map formatting
+        - lon0, lon1, lat0, lat1 - default view
+    - attributes created on init
+        - fig - map as a bokeh figure object
+        - ColumnDataSource objects for all glyphs
+    - methods
+        - reset_map_view
+        - reset_interface
+        - update_tile_source
+    """
+
+    def __init__(self, width=1200, height=300, map_vendor='OSM', size=12, lon0=-110, lon1=-70, lat0=25, lat1=50,
+        legend_location='top_left', legend_layout_location='center'):
+
+        # standard tools
+        pan, wheel, box, reset, redo, undo = PanTool(), WheelZoomTool(), BoxZoomTool(), ResetTool(), RedoTool(), UndoTool()
+        tools = [pan, wheel, box, reset, redo, undo]
+
+        # interactive map as a figure object
+        self.fig = figure(width=width, height=height, tools=tools, toolbar_location='right')
+        self.fig.add_tile(tile_source=map_vendor)
+        self.fig.toolbar.logo = None
+        self.fig.toolbar.active_drag = pan
+        self.fig.toolbar.active_scroll = wheel
+        self.fig.outline_line_width = 2
+        self.fig.xaxis.visible = False
+        self.fig.yaxis.visible = False
+        self.fig.grid.visible = False
+        self.fig.x_range = Range1d()
+        self.fig.y_range = Range1d()
+
+        # path1 / position1 data source and glyphs
+        self.path1 = ColumnDataSource()
+        self.position1 = ColumnDataSource()
+        self.event = ColumnDataSource()
+        self.fig.circle('lon', 'lat', source=self.path1, size=6, color='darkblue', name='path1')
+        self.fig.line('lon', 'lat', source=self.path1, line_width=1, color='darkblue', name='path1', alpha=0.4)
+        self.fig.asterisk('lon', 'lat', source=self.position1, size=22, color='darkblue', line_color='darkblue', line_width=2, name='position1')
+
+        # path2 / position2 data source and glyphs
+        self.path2 = ColumnDataSource()
+        self.position2 = ColumnDataSource()
+        self.fig.circle('lon', 'lat', source=self.path2, size=6, color='green', name='path2')
+        self.fig.line('lon', 'lat', source=self.path2, line_width=1, color='green', name='path2', alpha=0.4)
+        self.fig.asterisk('lon', 'lat', source=self.position2, size=22, color='green', line_color='green', line_width=2, name='position2')
+
+        # event glyph
+        self.fig.x('lon', 'lat', source=self.event, size=22, color='red', line_color='red', line_width=3, name='event')
+
+        # default view
+        assert lon0 < lon1
+        assert lat0 < lat1
+        self.lon0 = lon0
+        self.lon1 = lon1
+        self.lat0 = lat0
+        self.lat1 = lat1
+
+        # legend object
+        self.legend = Legend(location=legend_location, glyph_width=20, glyph_height=20)
+        self.fig.add_layout(self.legend, legend_layout_location)
+
+        # reset map view and interface
+        largefonts(self.fig, size)
+        self.reset_interface()
+        self.reset_map_view()
+
+    def reset_map_view(self, lon0=None, lon1=None, lat0=None, lat1=None, convert=True):
+        """
+        reset map view, use gps coords
+        """
+
+        # use default view if any coords not provided as args
+        if (lon0 is None) or (lon1 is None) or (lat0 is None) or (lat1 is None):
+            lon0, lon1 = self.lon0, self.lon1
+            lat0, lat1 = self.lat0, self.lat1
+
+        # validate and convert
+        assert lon0 < lon1
+        assert lat0 < lat1
+        if convert:
+            lon0, lat0 = gps_to_webm(lon=lon0, lat=lat0)
+            lon1, lat1 = gps_to_webm(lon=lon1, lat=lat1)
+
+        # update coords to maintain aspect ratio
+        lon0, lon1, lat0, lat1 = get_map_ranges(lon0, lon1, lat0, lat1, aspect=self.fig.width / self.fig.height)
+
+        # update coords on map
+        self.fig.x_range.start = lon0
+        self.fig.x_range.end = lon1
+        self.fig.y_range.start = lat0
+        self.fig.y_range.end = lat1
+
+    def reset_interface(self):
+        """
+        reset data sources
+        """
+        self.path1.data = {'lon': np.array([]), 'lat': np.array([])}
+        self.position1.data = {'lon': np.array([]), 'lat': np.array([])}
+        self.path2.data = {'lon': np.array([]), 'lat': np.array([])}
+        self.position2.data = {'lon': np.array([]), 'lat': np.array([])}
+        self.event.data = {'lon': np.array([]), 'lat': np.array([])}
+        self.legend.items = []
+
+    def update_tile_source(self, provider='OSM'):
+        assert provider in ['OSM', 'ESRI']
+        tr = [x for x in self.fig.renderers if isinstance(x, TileRenderer)]
+        assert len(tr) == 1
+        tr = tr[0]
+        name = 'openstreetmap_mapnik' if provider == 'OSM' else 'esri_worldimagery' if provider == 'ESRI' else None
+        provider = xyzservices.providers.query_name(name)
+        ts = WMTSTileSource(url=provider.build_url(), attribution=provider.html_attribution, min_zoom=provider.get('min_zoom', 0), max_zoom=provider.get('max_zoom', 30))
+        tr.update(tile_source=ts)
 
 class LearningCurveInterface:
     """
@@ -655,7 +819,7 @@ def largefonts(fig, size=12):
     # legend
     if fig.legend:
         fig.legend.label_text_font_size = s1
-        fig.legend.border_line_width = 1
+        fig.legend.border_line_width = 2
         fig.legend.border_line_color = 'grey'
         fig.legend.border_line_alpha = 0.6
 

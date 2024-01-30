@@ -93,6 +93,93 @@ def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=Non
 
     return fig, ax
 
+def expanding_bar_chart(x, labels, title=None, xlabel=None, legend=None, figsize=(10, 6), size=14, height=0.8):
+    """
+    create or update horizontal bar chart
+    - x - data
+    - labels - for y-axis
+    - title - figure title and axes title
+    - xlabel - axes x label
+    - legend - label for legend
+    - figsize, size, height - misc formatting
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from pyrb.mpl import open_figure, format_axes, save_pngs, largefonts
+    from ipdb import set_trace
+    plt.style.use('bmh')
+
+    # validate args
+    assert isinstance(x, np.ndarray)
+    assert isinstance(labels, np.ndarray)
+    assert np.unique(labels).size == labels.size
+    assert x.size == labels.size
+    xlabel = xlabel if xlabel is not None else ''
+    title = title if title is not None else 'bar chart'
+
+    # fig and ax objects
+    fig, ax = open_figure(title, figsize=figsize)
+    def clean_up():
+        largefonts(size)
+        format_axes(xlabel, '', title, ax)
+        if legend is not None:
+            ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        largefonts(size)
+        fig.tight_layout()
+
+    # initialize chart
+    if not ax.containers:
+        y = range(x.size)
+        ax.barh(y=y, width=x, height=height, align='center', label=legend)
+        ax.set_yticks(y)
+        ax.set_ylim(-height, x.size - 1 + height)
+        ax.set_yticklabels(labels)
+        clean_up()
+        return fig, ax
+
+    # existing data
+    assert ax.get_xlabel() == xlabel
+    width = np.array([[cx.get_width() for cx in container] for container in ax.containers])
+    y = np.array([[cx.get_y() for cx in container] for container in ax.containers])
+    ylabels = np.array([x.get_text() for x in ax.get_yticklabels()])
+
+    # update legend
+    assert ax.get_legend() is not None
+    legend = np.hstack((np.array([x.get_text() for x in ax.get_legend().texts]), legend))
+
+    # update for existing labels
+    xn = np.expand_dims(np.array([x[lx == labels] if (lx in labels) else np.array([0]) for lx in ylabels]).flatten(), axis=0)
+    assert width.shape[1] == xn.shape[1]
+    width = np.vstack((width, xn))
+
+    # update for new labels
+    new = np.array([x for x in labels if x not in ylabels])
+    if new.size > 0:
+        w2 = np.vstack((np.expand_dims(np.zeros(new.size), axis=0),
+            np.expand_dims(np.array([x[labels == xx] for xx in new]).flatten(), axis=0)))
+        width = np.hstack((w2, width))
+        labels = np.hstack((new, ylabels))
+    else:
+        labels = ylabels
+
+    # close existing chart, regenerate chart (needs refactor for n > 2)
+    plt.close(fig)
+    fig, ax = open_figure(title, figsize=figsize)
+    n = width.shape[0]
+    assert legend.size == n
+    height /= n
+    y = np.arange(labels.size)
+    assert n < 3
+    if n == 2:
+        ax.barh(y=y, width=width[0], height=height, align='edge', label=legend[0])
+        ax.barh(y=y - height, width=width[1], height=height, align='edge', label=legend[1])
+    ax.set_yticks(y)
+    ax.set_ylim(-height, labels.size - 1 + height)
+    ax.set_yticklabels(labels)
+    clean_up()
+
+    return fig, ax
+
 def get_current_figs():
     """
     get list of current matplotlib figure managers
