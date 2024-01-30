@@ -1,0 +1,158 @@
+steps to create and initialize EC2 instance
+
+(1) create key-pair, russell-lab
+    • ED25519, pem file downloads to local
+    • move to local/.aws/pem
+(2) launch ec2 instance, russell-lab
+    • Ubuntu 22.04, m6i.large, russell-lab key-pair
+    • vpc-0185681b16595b696 (prod-lytxlab)
+    • subnet-0a34da7a1ac3dc93e (prod-lytxlab-private-us-west-2a)
+    • sg-0639d73cce007b41b (prod-web-server)
+    • sg-0713f72dce9f95008 (prod-labs-postgres-access)
+    • sg-0ef77dcb4e7049aa0 (prod-lytx-labs-nats-efs-sg)
+    • -- did not include -- sg-087fea65d7c6a3bb9 (russell-dev-sg)
+    • root volume, 40GiB, gp3, delete on termination
+(3) login and update
+    • ssh -i "c:\Users\russell.burdt\.aws\russell-lab.pem" ubuntu@10.140.72.132
+    • sudo apt update, sudo apt upgrade -y
+(4) TotalCommander sftp plugin
+    • copy .ssh/authorized_keys to local/.aws/pub
+    • use pub and pem files, ubuntu as user (for now)
+(5) SublimeText sftp plugin
+    • load local/.aws/pem to PuTTYgen
+    • save v2/v3 ppk files to local/.aws/ppk, eg
+      https://superuser.com/questions/1659886/sublime-sftp-connection-failure/1663753#1663753
+    • sftp - setup server
+        {
+            "type": "sftp",
+            "host": "10.140.72.174",
+            "user": "ubuntu",
+            "remote_path": "/home/ubuntu",
+            "connect_timeout": 30,
+            "ssh_key_file": "c:\\Users\\russell.burdt\\.aws\\russell-lab-v2.ppk"
+        }
+(6) create and/or attach EBS data volume
+    • rename root volume as russell-lab-root-volume
+    • create data volume as russell-lab-data-volume, 1000GiB, gp3, attach to russell-lab instance
+      (or attach existing detached volume)
+    • set up and mount data volume
+        ○ following https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html
+        ○ validate attached volume, lsblk
+        ○ validate no filesystem, sudo file -s /dev/nvme1n1 (from lsblk), returns 'data'
+        ○ create filesystem if none already, sudo mkfs -t ext4 /dev/nvme1n1
+        ○ validate filesystem, sudo file -s /dev/nvme1n1, returns 'ext4'
+        ○ backup fstab, sudo cp /etc/fstab /etc/fstab.orig
+        ○ get volume UUID, sudo lsblk -o +UUID (53fb80bd-3f5c-473f-bb52-e1a8c3707b42)
+        ○ add line to /etc/fstab
+        ○ UUID=53fb80bd-3f5c-473f-bb52-e1a8c3707b42  /mnt/home  ext4  defaults,nofail  0  2
+        ○ create dir for mount, sudo mkdir /mnt/home/
+        ○ test mount, sudo mount -a, if no errors sudo rm /etc/fstab.orig
+        ○ sudo reboot and validate data volume mount as lsblk, df -h
+(7) create user on EBS data volume
+    • validate users, cat /etc/passwd
+    • sudo adduser --home /mnt/home/russell.burdt --disabled-password --force-badname russell.burdt
+    • validate new user and /mnt/home/russell.burdt directory
+    • sudo su - russell.burdt, username on prompt will change
+    • for new volume --
+      mkdir .ssh
+      chmod 700 .ssh
+      nano .ssh/authorized_keys, save as empty file
+      chmod 600 .ssh/authorized_keys
+      paste local/.aws/pub to .ssh/authorized_keys
+    • go to ubuntu user, sudo visudo, then add line, russell.burdt ALL=(ALL) NOPASSWD: ALL (removes password requests for russell.burdt)
+    • test and use as primary login, ssh -i "c:\Users\russell.burdt\.aws\russell-lab.pem" russell.burdt@10.140.72.174
+    • update username in TotalCommander sftp plugin config
+(8) setup TFS ssh clone
+    • copy config and id_rsa to /mnt/home/russell.burdt/.ssh
+    • chmod 600 .ssh/id_rsa, chmod 600 .ssh/config
+    • git clone ssh://dctfs4:22/tfs/Lytx/_git/Lytx.AML.RussellB
+    • debug command - GIT_SSH_COMMAND="ssh -vv -i ~/.ssh/id_rsa" git clone  ssh://dctfs4:22/tfs/Lytx/_git/Lytx.AML.RussellB
+    • not required - any addition to TFS SSH public keys
+    • http clone - git clone http://dctfs4.drivecaminc.loc:8080/tfs/Lytx/_git/Lytx.AML.RussellB
+(*) disable IPython auto-suggest
+    • after installing miniconda and ipython
+    • modify .ipython/profile_default/ipython_config.py
+    • c.TerminalInteractiveShell.autosuggestions_provider = None
+    • c.pt_app.auto_suggest = None
+(*) modify .bashrc
+
+    # set PYTHONPATH
+    export PYTHONPATH="/mnt/home/russell.burdt/Lytx.AML.RussellB"
+
+    # Spark
+    export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+    export HADOOP_HOME="/mnt/home/russell.burdt/hadoop-3.2.2"
+    export LD_LIBRARY_PATH="/mnt/home/russell.burdt/hadoop-3.2.2/lib/native"
+
+    # git add/commit/push
+    function lazygit() {
+        git add -A
+        git commit -m "ok"
+        git push
+    }
+
+    # system update
+    function lazyupdate() {
+        sudo apt update
+        sudo apt upgrade -y
+    }
+
+    # collision-prediction-model eval app
+    function deploy-cpm-eval() {
+        conda activate cpm
+        cd /mnt/home/russell.burdt/Lytx.AML.RussellB/lab/collision-model/
+        BOKEH_RESOURCES=cdn bokeh serve app-ml.py --port 5006 --allow-websocket-origin 10.144.240.35:5006
+(*) connect to EDW
+    • install Microsoft ODBC Driver for Linux, eg
+    https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver15&tabs=alpine18-install%2Cubuntu17-install%2Cdebian8-install%2Credhat7-13-install%2Crhel7-offline
+    • sudo apt-get install krb5-user
+    • sudo cp /etc/krb5.conf /etc/krb5.orig
+    • copy kinit.sh, krb5.conf, krb5.keytab to /etc
+    • source /etc/kinit.sh, then test EDW connection (certificate will expire with time or on reboot)
+    • check certificate, klist
+    • following Tim Eddo guidance --
+      sudo chmod 0664 /etc/krb5.conf, root group root owner (ls -l /etc/krb5.conf -- root root)
+      sudo chmod 0440 /etc/krb5.keytab, root group user owner (ls -l /etc/krb5.keytab -- root russell.burdt)
+      (change group, sudo chgrp russell.burdt /etc/krb5.keytab)
+      sudo chmod 0555 /etc/kinit.sh, root group root owner (ls -l /etc/kinit.sh -- root root)
+    • cronjob to refresh certificate periodically and on reboot, crontab -e
+      # Refresh kerberos token
+      * 1,5,9,13,17,21 * * * /etc/kinit.sh
+      # Refresh kerberos token at reboot
+      @reboot /etc/kinit.sh
+(*) update role for S3 full access
+    • go to attached role
+    • add permissions policy - from https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonS3FullAccess.html
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:*",
+                        "s3-object-lambda:*"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        }
+(*) Spark setup
+    • install Java, sudo apt install openjdk-17-jdk
+    • include in .bashrc, export JAVA_HOME="/usr/lib/jvm/java-1.17.0-openjdk-amd64"
+    • get hadoop binaries, no match to spark version, wget https://dlcdn.apache.org/hadoop/common/hadoop-*/hadoop-*.tar.gz
+    • tar xzf hadoop-*.tar.gz
+    • rm hadoop-3.3.6.tar.gz
+    • include in .bashrc, export HADOOP_HOME="/mnt/home/russell.burdt/hadoop-3.3.6"
+    • include in .bashrc, export LD_LIBRARY_PATH="/mnt/home/russell.burdt/hadoop-3.3.6/lib/native"
+    • for avro support -
+    • download jar file matching Spark version from https://mvnrepository.com/artifact/org.apache.spark/spark-avro
+    • include in Spark conf, conf.set('spark.jars', '/mnt/home/russell.burdt/jars/spark-avro_2.13-3.3.2.jar')
+    • for s3 parquet support -
+    • download jar file matching Spark version from https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws
+    • download latest jar file from https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-bundle
+    • reference above files in Spark conf in comma-separated list, conf.set('spark.jars', '<path1>,<path2>')
+    • if s3 bucket/key for parquet dataset is not accessible (validate via boto3) also include
+    • conf.set('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider')
+    • conf.set('spark.hadoop.fs.s3a.access.key', '...')
+    • conf.set('spark.hadoop.fs.s3a.secret.key', '...')
+    • conf.set('spark.hadoop.fs.s3a.session.token', '...'

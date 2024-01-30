@@ -1,0 +1,34 @@
+
+details regarding how to set up and monitor the 'dce-viewer' app
+
+-- conda environments --
+    two environments are needed, as conflict between ffmpeg v3 (dce2mkv requirement) and bokeh v2 (modern version)
+    1) 'dce-viewer' is main bokeh environment, install bokeh numpy boto3 pandas ipython pyproj ipdb
+    2) 'ffmpeg3' is dce2mkv environment, install python=3.6 ffmpeg=3 python-dateutil pytz
+    ** install DCEUtils in both environments
+
+-- linux packages --
+    sudo apt install nginx
+    sudo apt install mkvtoolnix (installs 'mkvmerge' as used by 'dce2mkv')
+
+-- run prod and dev apps --
+    * main.py should be identical in prod vs dev (if dev represents most updated version)
+    * SDIR and VDIR in config.py should be different in prod vs dev (same comment as above)
+    * run prod app as
+        - chmod +x Lytx.AML.RussellB/aml/dce-viewer/server/start.sh (if not already done)
+        - chmod +x Lytx.AML.RussellB/aml/dce-viewer/server/restart.sh
+        - chmod +x Lytx.AML.RussellB/aml/dce-viewer/server/kill.sh
+        - ./Lytx.AML.RussellB/aml/dce-viewer/server/restart.sh
+        - go to in any browser on VPN, http://10.144.240.35/dce-viewer
+    * run dev app as
+        - conda activate dce-viewer
+        - cd Lytx.AML.RussellB/aml/dce-viewer/
+        - bokeh serve dev --allow-websocket-origin=10.144.240.35:5006
+        - go to in local browser, http://10.144.240.35:5006/
+
+-- monitor nginx --
+    sudo systemctl status nginx
+
+-- monitor dce-viewer app --
+    sudo systemctl status dce-viewer
+    sudo journalctl -u dce-viewer -n 20

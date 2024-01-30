@@ -1,0 +1,12 @@
+Host *
+    ServerAliveInterval 60
+    PubkeyAcceptedKeyTypes=+ssh-rsa
+    HostKeyAlgorithms=+ssh-rsa
+
+Host dctfs4
+  Hostname dctfs4.drivecaminc.loc
+  KexAlgorithms diffie-hellman-group-exchange-sha1,diffie-hellman-group1-sha1
+  Ciphers aes256-cbc
+  HostKeyAlgorithms ssh-dss,ssh-rsa
+  Port 22
+  User russell.burdt
