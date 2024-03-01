@@ -3,6 +3,9 @@
 matplotlib utils
 """
 
+def block_chart():
+    pass
+
 def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=None, ylabel='bin count',
         legend=None, loc='upper left', bbox_to_anchor=(1, 1), figsize=(12, 6), size=18, logscale=False, pdf=False, alpha=0.8):
     """
