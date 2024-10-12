@@ -25,7 +25,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm, t
 from scipy.integrate import quad
-from pyrb import open_figure, format_axes, largefonts
+from pyrb.mpl import open_figure, format_axes, largefonts
 from ipdb import set_trace
 from tqdm import tqdm
 plt.style.use('bmh')
@@ -146,6 +146,34 @@ def get_pvalue_bootstrap(x, y, n=10000):
         x_idx = np.random.choice(idx, replace=False, size=nx)
         y_idx = np.array(list(set(idx).difference(x_idx)))
         bootstrap.append(data[x_idx].mean() - data[y_idx].mean())
+    bootstrap = np.array(bootstrap)
+
+    # p-value is the number of times the bootstrap difference exceeds the original difference
+    return (bootstrap > diff).sum() / n
+
+def get_pvalue_bootstrap_abs(x, y, n=10000):
+    """
+    return p-value for hypothesis test that mean of population x exceeds mean of population y
+    - x is a data sample from population x
+    - y is a data sample from population y
+    - H0: ux == uy
+    - HA: ux != uy
+    """
+
+    # get initial sample difference
+    diff = np.abs(x.mean() - y.mean())
+
+    # get sample sizes and combine data from both samples
+    nx, ny = x.size, y.size
+    data = np.hstack((x, y))
+    idx = range(data.size)
+
+    # initalize a list for bootstrap differences of sample means
+    bootstrap = []
+    for _ in tqdm(range(n), desc='bootstrap confidence interval'):
+        x_idx = np.random.choice(idx, replace=False, size=nx)
+        y_idx = np.array(list(set(idx).difference(x_idx)))
+        bootstrap.append(np.abs(data[x_idx].mean() - data[y_idx].mean()))
     bootstrap = np.array(bootstrap)
 
     # p-value is the number of times the bootstrap difference exceeds the original difference

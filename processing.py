@@ -1,6 +1,6 @@
 
 """
-short data processing utility methods
+data processing utilities
 """
 
 def get_binary_contiguous_indices(array, partial=False):
@@ -74,9 +74,54 @@ def gps_to_webm(lon, lat):
     convert GPS coordinates (EPSG-4326) to web-mercator coordinates (EPSG-3857)
     returns lon, lat in GPS coords
     """
+    import numpy as np
     from pyproj import Transformer
-    x = Transformer.from_crs(crs_from=4326, crs_to=3857, always_xy=True).transform(lon, lat)
-    return x[0], x[1]
+
+    # validate
+    c0 = isinstance(lon, (int, float))
+    c1 = isinstance(lat, (int, float))
+    c2 = isinstance(lon, np.ndarray)
+    c3 = isinstance(lat, np.ndarray)
+    assert (c0 and c1) or (c2 and c3 and (lon.size == lat.size))
+
+    # from arcgis.gis import GIS
+    # from arcgis.geometry import project
+    # gis = GIS()
+    # xy = project([[lon, lat]], in_sr=4326, out_sr=3857)[0]
+    # return xy['x'], xy['y']
+
+    # convert and return
+    xy = Transformer.from_crs(crs_from=4326, crs_to=3857, always_xy=True).transform(lon, lat)
+    return xy[0], xy[1]
+
+def reverse_geocode(lon, lat):
+    """
+    reverse geocode based on lon / lat, return '<city>, <state>' as a str
+    - both arcgis and reverse_geocoder libraries interfere with datalake connections
+    """
+    import numpy as np
+    from arcgis.gis import GIS
+    from arcgis import geocoding
+
+    # validate
+    c0 = isinstance(lon, (int, float))
+    c1 = isinstance(lat, (int, float))
+    c2 = isinstance(lon, np.ndarray)
+    c3 = isinstance(lat, np.ndarray)
+    assert (c0 and c1) or (c2 and c3 and (lon.size == lat.size))
+
+    # arcgis reverse geocode
+    gis = GIS()
+    if (c0 and c1):
+        loc = geocoding.reverse_geocode([lon, lat])
+        return f"""{loc['address']['City']}, {loc['address']['RegionAbbr']}"""
+    loc = [geocoding.reverse_geocode([lx, ly]) for lx, ly in zip(lon, lat)]
+    return np.array([' '.join((x['address']['City'], x['address']['RegionAbbr'])) for x in loc])
+
+    # use reverse_geocoder library
+    # import reverse_geocoder
+    # rg = reverse_geocoder.RGeocoder()
+    # locations = rg.query([(a, b) for a, b in zip(lat, lon)])
 
 def get_bounds_of_data_within_interval(data, x=0.95):
     """

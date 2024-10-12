@@ -3,10 +3,109 @@
 matplotlib utils
 """
 
-def block_chart():
-    pass
+def block_chart_from_dataframe(dm, figsize=(12, 4), fig=None, ax=None, label=None, xlabel='', title='block chart', size=16, loc='upper left', bbox_to_anchor=(0, 1), alpha=0.6):
+    """
+    block chart based on pandas DataFrame
+    - each row becomes a block on chart
+    - requisite colums are 'start' and 'end', may be timestamp or numeric objects
+    - legend uses label column
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    from ipdb import set_trace
 
-def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=None, ylabel='bin count',
+
+    # validate args
+    assert isinstance(dm, pd.DataFrame) and isinstance(figsize, tuple) and isinstance(title, str) and isinstance(size, int)
+    assert ('start' in dm.columns) and ('end' in dm.columns)
+    if label is not None:
+        assert isinstance(label, list)
+        assert all([x in dm.columns for x in label])
+    c0 = all([pd.core.dtypes.common.is_datetime64_dtype(dm[col]) for col in ['start', 'end']])
+    c1 = all([pd.core.dtypes.common.is_numeric_dtype(dm[col]) for col in ['start', 'end']])
+    assert np.logical_xor(c0, c1)
+    assert all(dm['end'] >= dm['start'])
+
+    # fig and ax objects
+    if (fig is None) and (ax is None):
+        fig, ax = open_figure(title, figsize=figsize)
+
+    # scan over blocks
+    for x, row in dm.iterrows():
+
+        # create block, set color and label
+        ta, tb = row['start'], row['end']
+        p = ax.fill_between(x=np.array([ta, tb]), y1=np.tile(0, 2), y2=np.tile(1, 2), alpha=alpha)
+        if 'colors' in dm.columns:
+            p.set_color(dm.loc[x, 'colors'])
+        if label is not None:
+            p.set_label(', '.join([row[x] for x in label]))
+
+    # clean up
+    if label is not None:
+        leg = ax.legend(loc=loc, bbox_to_anchor=bbox_to_anchor, title=', '.join(label), title_fontproperties={'weight':'bold'}, handlelength=4, shadow=True, fancybox=True)
+        leg._legend_box.align = 'left'
+        for cx in ax.get_legend().get_texts():
+            cx.set_fontsize(size - 4)
+    ax.set_ylim(0, 1)
+    ax.set_yticklabels([])
+    if c0:
+        ax.set_xlim(dm.iloc[0]['start'] - pd.Timedelta(hours=1), dm.iloc[-1]['end'] + pd.Timedelta(hours=1))
+        format_axes(xlabel, '', title, ax, apply_concise_date_formatter=True)
+    else:
+        margin = 0.01 * (dm['end'].max() - dm['start'].min())
+        ax.set_xlim(dm['start'].min() - margin, dm['end'].max() + margin)
+        format_axes(xlabel, '', title, ax)
+    ax.grid(visible=False, axis='both')
+    largefonts(size, legend=False)
+    fig.tight_layout()
+
+def table_from_dataframe(dm, figsize=(12, 4), title='table', size=16, colors=None, alpha=0.6, xscale=1, yscale=2, fig=None, ax=None):
+    """
+    table based on pandas DataFrame
+    - each row of dataframe becomes a row in table
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    from ipdb import set_trace
+
+
+    # validate args
+    assert isinstance(dm, pd.DataFrame)
+    assert dm.shape[0] < 10
+    assert isinstance(figsize, tuple)
+    assert isinstance(title, str)
+    assert isinstance(size, int)
+
+    # row colors
+    if colors is not None:
+        assert isinstance(colors, np.ndarray)
+        assert colors.shape == (dm.shape[0], 4)
+
+    # figure object and scan over blocks / colors
+    if (fig is None) and (ax is None):
+        fig, ax = open_figure(title, figsize=figsize)
+
+    # create table on ax
+    table = ax.table(cellText=dm.values, colLabels=dm.columns, cellLoc='center', loc='upper center')
+    if colors is not None:
+        for pos, cell in table._cells.items():
+            if (pos[0] == 0) or (pos[1]) == -1:
+                continue
+            cell.set_color(colors[pos[0] - 1])
+            cell.set_alpha(alpha)
+    table.auto_set_column_width(list(range(dm.shape[1])))
+    table.auto_set_font_size(False)
+    table.set_fontsize(size)
+    table.scale(xscale, yscale)
+    ax.grid(visible=False, axis='both')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_axis_off()
+
+def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=None, ylabel='bin count', fig=None, ax=None,
         legend=None, loc='upper left', bbox_to_anchor=(1, 1), figsize=(12, 6), size=18, logscale=False, pdf=False, alpha=0.8):
     """
     create or update matplotlib distribution
@@ -34,7 +133,8 @@ def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=Non
     x = x[~np.isnan(x)]
 
     # fig and ax objects
-    fig, ax = open_figure(title, figsize=figsize)
+    if (fig is None) and (ax is None):
+        fig, ax = open_figure(title, figsize=figsize)
 
     # distribution
     xd = np.digitize(x, bins)
@@ -96,11 +196,12 @@ def metric_distribution(x, bins, title='distribution', ax_title=None, xlabel=Non
 
     return fig, ax
 
-def expanding_bar_chart(x, labels, title=None, xlabel=None, legend=None, figsize=(10, 6), size=14, height=0.8):
+def expanding_bar_chart(x, labels, text=None, title=None, xlabel=None, legend=None, figsize=(10, 6), size=14, height=0.8, fig=None, ax=None):
     """
     create or update horizontal bar chart
     - x - data
     - labels - for y-axis
+    - text - text at end of bars
     - title - figure title and axes title
     - xlabel - axes x label
     - legend - label for legend
@@ -117,11 +218,14 @@ def expanding_bar_chart(x, labels, title=None, xlabel=None, legend=None, figsize
     assert isinstance(labels, np.ndarray)
     assert np.unique(labels).size == labels.size
     assert x.size == labels.size
+    if text is not None:
+        assert isinstance(text, np.ndarray) and (text.dtype.type is np.str_) and (text.size == x.size)
     xlabel = xlabel if xlabel is not None else ''
     title = title if title is not None else 'bar chart'
 
     # fig and ax objects
-    fig, ax = open_figure(title, figsize=figsize)
+    if (fig is None) and (ax is None):
+        fig, ax = open_figure(title, figsize=figsize)
     def clean_up():
         largefonts(size)
         format_axes(xlabel, '', title, ax)
@@ -182,6 +286,54 @@ def expanding_bar_chart(x, labels, title=None, xlabel=None, legend=None, figsize
     clean_up()
 
     return fig, ax
+
+def hbar_chart(x, labels, text=None, title=None, xlabel=None, legend=None, figsize=(10, 6), size=14, height=0.8, xscale=1.2, fig=None, ax=None):
+    """
+    horizontal bar chart
+    - x - data
+    - labels - for y-axis
+    - text - text at end of bars
+    - title - figure title and axes title
+    - xlabel - axes x label
+    - legend - label for legend
+    - figsize, size, height - misc formatting
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from pyrb.mpl import open_figure, format_axes, save_pngs, largefonts
+    from ipdb import set_trace
+    plt.style.use('bmh')
+
+    # validate args
+    assert isinstance(x, np.ndarray)
+    assert isinstance(labels, np.ndarray)
+    assert np.unique(labels).size == labels.size
+    assert x.size == labels.size
+    if text is not None:
+        assert isinstance(text, np.ndarray) and (text.dtype.type is np.str_) and (text.size == x.size)
+    xlabel = xlabel if xlabel is not None else ''
+    title = title if title is not None else 'bar chart'
+
+    # fig and ax objects
+    if (fig is None) and (ax is None):
+        fig, ax = open_figure(title, figsize=figsize)
+
+    # create chart
+    y = range(x.size)
+    ax.barh(y=y, width=x, height=height, align='center', label=legend)
+    ax.set_yticks(y)
+    ax.set_ylim(-height, x.size - 1 + height)
+    ax.set_yticklabels(labels)
+    ax.set_xlim(0, xscale * x.max())
+    if text is not None:
+        for xx, yy, t in zip(x, y, text):
+            ax.text(xx, yy, t, ha='left', va='center', fontsize=size - 2, fontweight='bold')
+    largefonts(size)
+    format_axes(xlabel, '', title, ax)
+    if legend is not None:
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    largefonts(size)
+    fig.tight_layout()
 
 def get_current_figs():
     """
